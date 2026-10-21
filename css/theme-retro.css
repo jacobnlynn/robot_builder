@@ -1,0 +1,274 @@
+/* Retro theme, matching the personal website: gray raised panels, sunken white fields,
+   navy title bars, Times New Roman, classic teal desktop background.
+   Loaded after style.css and only overrides it. To go back to the plain theme, delete the
+   theme-retro.css <link> line in index.html (and artifact.html). */
+:root {
+  --bg: #008080;
+  --panel: #c0c0c0;
+  --panel-sunk: #dcdcdc;
+  --viewport: #ffffff;
+  --line: #808080;
+  --line-strong: #404040;
+  --ink: #000000;
+  --ink-2: #000000;
+  --muted: #404040;
+  --accent: #000080;
+  --accent-ink: #000080;
+  --accent-soft: #c0c0c0;
+  --danger: #800000;
+  --danger-soft: #c0c0c0;
+  --danger-line: #800000;
+  --overlay: #c0c0c0;
+  --shadow-float: none;
+  --shadow-raised: none;
+
+  --font-ui: "Times New Roman", Times, serif;
+  --font-mono: "Courier New", Courier, monospace;
+  --radius: 0;
+  --radius-sm: 0;
+
+  /* Bevels: light top-left / dark bottom-right is raised; flipped is sunken */
+  --raised: #ffffff #404040 #404040 #ffffff;
+  --sunken: #404040 #ffffff #ffffff #404040;
+}
+
+body {
+  padding: 10px;
+  font: 15px/1.4 var(--font-ui);
+  -webkit-font-smoothing: auto;
+}
+:focus-visible { outline: 1px dotted #000000; outline-offset: 1px; }
+a:link { color: #0000ee; }
+a:visited { color: #551a8b; }
+.hint { font-size: 13px; }
+
+/* The whole app is one raised gray box over the wallpaper */
+.app {
+  padding: 2px;
+  background: var(--panel);
+  border: 2px solid;
+  border-color: var(--raised);
+}
+
+/* Engraved rule, like the site's <hr> */
+.topbar, .panel-section, .insp-section, .section-head {
+  border-bottom: 1px solid #808080;
+  box-shadow: 0 1px 0 #ffffff;
+}
+.topbar { background: var(--panel); }
+/* The file bar runs edge to edge along the top of the page, with teal showing below it */
+body { padding-top: 0; }
+.filebar { margin: 0 -10px 10px; border: 0; border-bottom: 2px solid #404040; box-shadow: inset 0 -1px 0 #808080, inset 0 1px 0 #ffffff; }
+/* The 3D view sits 2px in from its column, so the view tools do too */
+.view-tools { margin-right: 2px; }
+.brand-name { font-size: 22px; font-weight: bold; letter-spacing: 0; }
+.brand-sep { color: #808080; font-size: 20px; }
+.project-name { font-size: 16px; }
+.project-name:hover, .project-name:focus { border-color: var(--sunken); border-style: solid; border-width: 1px; background: #ffffff; }
+
+/* ---- Buttons: raised, sunken while pressed ---- */
+.btn, .segmented button, .tab, .icon-btn {
+  padding: 3px 12px;
+  border: 2px solid;
+  border-color: var(--raised);
+  border-radius: 0;
+  background: var(--panel);
+  color: #000000;
+  font-weight: normal;
+  box-shadow: none;
+}
+.btn:hover, .btn-ghost:hover:not(:disabled), .btn-danger:hover { background: var(--panel); }
+.btn:active:not(:disabled), .segmented button:active, .tab:active, .icon-btn:active:not(:disabled) { border-color: var(--sunken); }
+.btn:disabled { opacity: 1; color: #808080; text-shadow: 1px 1px 0 #ffffff; }
+/* Default button gets the black outline, as on the site's "Contact..." button */
+.btn-primary, .btn-primary:hover { background: var(--panel); border-color: var(--raised); color: #000000; outline: 1px solid #000000; font-weight: bold; }
+.btn-ghost { border-color: var(--raised); color: #000000; }
+.btn-small { padding: 1px 8px; font-size: 13px; }
+.btn-danger { border-color: var(--raised); color: var(--danger); }
+.btn.is-armed { border-color: var(--sunken); background: var(--panel-sunk); color: var(--danger); font-weight: bold; }
+
+/* Small square button, like the site's title-bar X */
+.icon-btn {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  font: bold 14px/1 Arial, sans-serif;
+}
+.icon-btn:hover:not(:disabled) { background: var(--panel); color: var(--danger); }
+
+/* Toggle groups: the chosen one stays pushed in */
+.segmented, .tabs { gap: 2px; padding: 0; background: none; border: 0; }
+.segmented button[aria-pressed="true"], .tab[aria-selected="true"], .tab[aria-pressed="true"] {
+  border-color: var(--sunken);
+  background: var(--panel-sunk);
+  color: #000000;
+  font-weight: bold;
+  box-shadow: none;
+}
+.check, .check input { accent-color: var(--accent); color: #000000; }
+input[type="range"] { accent-color: var(--accent); }
+
+/* Info button and its pop-up: a small raised box like the site's windows */
+.info summary { border-radius: 0; border: 2px solid; border-color: var(--raised); background: var(--panel); color: #000080; }
+.info[open] summary { border-color: var(--sunken); color: #000080; }
+.info-pop { border: 2px solid; border-color: var(--raised); background: #ffffe1; }
+
+/* ---- Workspace ---- */
+.panel { background: var(--panel); }
+.panel-left, .panel-right { border: 0; }
+.panel-section:last-child, .insp-section:last-child { border-bottom: 0; box-shadow: none; }
+.section-head { padding-bottom: 3px; }
+.section-title { font-size: 18px; font-weight: bold; letter-spacing: 0; text-transform: none; color: #000000; }
+.count { font-size: 14px; color: #000080; }
+
+/* The 3D view sits in a sunken white well */
+.viewport {
+  margin: 2px;
+  background: var(--viewport);
+  border: 2px solid;
+  border-color: var(--sunken);
+}
+.vp-badge, .vp-legend {
+  border: 2px solid;
+  border-color: var(--raised);
+  background: var(--panel);
+  color: #000000;
+}
+.vp-badge { font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: bold; }
+.vp-legend { font-size: 13px; }
+.vp-hint { font-size: 13px; color: #404040; }
+.swatch, .chip { border-radius: 0; }
+.chip { color: #ffffff; font-family: var(--font-mono); font-weight: bold; }
+
+/* ---- Assembly tree: selection is navy with white text ---- */
+.tree ul { border-left: 1px dotted #808080; }
+.tree-row:hover, .tree-port:hover { background: var(--panel-sunk); }
+.tree-row.is-selected, .tree-port.is-selected { background: #000080; box-shadow: none; color: #ffffff; }
+.tree-row.is-selected .tree-meta, .tree-port.is-selected .tree-meta, .tree-port.is-selected .tree-name { color: #ffffff; }
+.tree-name { font-weight: normal; }
+.tree-port .tree-name { color: #0000ee; text-decoration: underline; }
+.tree-meta, .branch-label { font-size: 12px; color: #404040; }
+/* Same blue as the clickable port dots in the 3D view */
+.port-dot::before { background: #2f6fe4; box-shadow: 0 0 0 1px #000000; }
+
+/* Collapse toggles and tree view */
+.tree-caret, .ot-caret { border-color: #808080; border-radius: 0; background: #ffffff; color: #000000; }
+.tree-caret.is-empty, .ot-caret.is-empty { border-color: transparent; background: none; }
+.tree-caret:hover:not(.is-empty), .ot-caret:hover:not(.is-empty) { border-color: #000080; color: #000080; }
+.tree-hidden { border-color: #808080; color: #404040; font-size: 13px; }
+#btn-tree-view[aria-pressed="true"] { border-color: var(--sunken); background: var(--panel-sunk); font-weight: bold; }
+.otree ul::before, .otree ul > li::before, .otree ul > li::after { border-color: #000000; }
+.ot-box { border: 2px solid; border-color: var(--raised); background: var(--panel); }
+.ot-box.is-selected { border-color: var(--sunken); }
+.ot-port { border: 1px dotted #000000; background: transparent; }
+
+.joint label { font-weight: normal; }
+.joint output, .range-row output { font-size: 13px; color: #000000; }
+
+/* ---- Inspector ---- */
+.eyebrow { font-size: 13px; font-style: italic; font-weight: normal; letter-spacing: 0; text-transform: none; color: #404040; }
+.insp-title, .title-input { font-size: 20px; font-weight: bold; }
+.title-input:hover, .title-input:focus { border: 1px solid; border-color: var(--sunken); background: #ffffff; }
+.field > label, .label { font-size: 14px; font-weight: normal; color: #000000; }
+
+/* Text fields and lists: sunken white */
+.field input[type="text"], .field select, .stack select, .dh-cell input, .mount-num, .dialog textarea, .stack, .summary div, .matrix {
+  border: 2px solid;
+  border-color: var(--sunken);
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+.field input[type="text"]:focus, .field select:focus, .stack select:focus, .dh-cell input:focus, .dialog textarea:focus {
+  border-color: var(--sunken);
+  box-shadow: none;
+  outline: 1px dotted #000000;
+}
+.stack-item + .stack-item { border-top: 1px solid #c0c0c0; }
+.stack-motor { background: #ffffff; }
+.stack-name { font-weight: normal; }
+.summary dt { font-size: 12px; color: #404040; }
+.summary dd { font-weight: bold; }
+.formula { font-size: 13px; color: #000000; }
+.matrix { font-size: 12.5px; color: #000000; }
+.matrix .is-pos { font-weight: bold; border-left-color: #808080; }
+.matrix .is-dim { color: #808080; }
+.matrix-label { font-size: 13px; color: #404040; }
+
+/* D-H set: engraved group box */
+.dh {
+  border: 1px solid #808080;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #ffffff, 1px 1px 0 #ffffff;
+}
+.dh legend { font-size: 14px; font-weight: bold; }
+.dh-sym { font-size: 14px; }
+.dh-sym small { font-size: 11px; color: #404040; }
+.tag { border-radius: 0; background: #000080; color: #ffffff; font-size: 11px; }
+
+/* ---- Status bar: sunken strip ---- */
+.statusbar {
+  margin: 2px;
+  padding-block: 2px;
+  background: var(--panel);
+  border: 1px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  font-size: 14px;
+  color: #000000;
+}
+
+.units-toggle button { padding: 0 10px; font-size: 14px; }
+
+/* ---- Dialog: a pop-up window with a navy title bar ---- */
+.dialog {
+  padding: 2px;
+  border: 2px solid;
+  border-color: var(--raised);
+  border-radius: 0;
+  background: var(--panel);
+  color: #000000;
+  box-shadow: none;
+}
+.dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+.dialog-head { padding: 3px 3px 3px 6px; border: 0; background: #000080; color: #ffffff; }
+.dialog-head h2 { font-size: 16px; font-weight: bold; }
+.dialog-body .muted { color: #000000; }
+.dialog-foot { border-top: 1px solid #808080; box-shadow: inset 0 1px 0 #ffffff; }
+
+/* Robot data window: white sunken tables, engraved lines between sections */
+.data-title { font-size: 18px; font-weight: bold; }
+.data-sub { font-size: 15px; font-weight: bold; }
+.data-sep { border: 0; border-top: 1px solid #808080; border-bottom: 1px solid #ffffff; }
+.data-stats { font-size: 14px; }
+.mtx-wrap { align-self: flex-start; max-width: 100%; border: 2px solid; border-color: var(--sunken); background: #ffffff; }
+.mtx, .data-table { font-size: 12.5px; color: #000000; }
+.mtx thead th, .data-table thead th { color: #404040; border-bottom-color: #808080; }
+.mtx tbody th { color: #404040; }
+
+@media (max-width: 860px) {
+  .panel { border-top: 1px solid #808080; box-shadow: inset 0 1px 0 #ffffff; }
+  .viewport { margin: 2px 2px 0; }
+}
+
+/* Simulate mode: joint speed table in a sunken white well */
+.sim-table { border: 2px solid; border-color: var(--sunken); background: #ffffff; font-size: 12.5px; color: #000000; }
+.ws-buttons .btn[aria-pressed="true"] { border-color: var(--sunken); background: var(--panel-sunk); font-weight: bold; }
+.end-size input { border: 2px solid; border-color: var(--sunken); background: #ffffff; }
+.tree-port.tree-end .tree-name { color: #000000; text-decoration: none; }
+.tree-port.tree-end:hover { background: none; }
+.vp-tools { border: 2px solid; border-color: var(--raised); border-radius: 0; background: var(--panel); font-size: 13px; color: #000000; }
+.vp-tools .segmented button { font-size: 13px; }
+.export-note { border: 1px solid #808080; border-left: 3px solid #000080; background: #ffffe1; color: #000000; }
+.export-dialog progress { accent-color: #000080; }
+
+/* Guided tour: a small window with a navy title bar, pointing with a yellow-note arrow */
+.tour { border: 2px solid; border-color: var(--raised); border-radius: 0; background: var(--panel); box-shadow: 2px 2px 0 #000000; }
+.tour-head { margin: 2px; padding: 3px 3px 3px 6px; background: #000080; color: #ffffff; }
+.tour-head h2 { font-size: 15px; font-weight: bold; }
+.tour-count { color: #ffffff; font-size: 12px; }
+.tour-body { padding: 8px 10px 2px; font-size: 14px; background: #ffffe1; margin: 0 2px; border: 1px solid #808080; }
+.tour-foot { border-top: 0; }
+.tour-arrow { background: #000080; border: 0; }
+.tour-target { outline: 2px dashed #000080; outline-offset: 2px; }
+.data-formula summary { color: #000080; text-decoration: underline; }
+.formula-code { border: 2px solid; border-color: var(--sunken); border-radius: 0; background: #ffffff; color: #000000; }
