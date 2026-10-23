@@ -1,9 +1,9 @@
 <title>Modular Robot Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=Karla:wght@400;600;700&family=Rubik+Mono+One&family=Space+Mono:wght@400;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/theme-retro.css"> <!-- retro theme; delete this line to remove -->
+<link rel="stylesheet" href="css/theme-retro.css" id="theme-css"> <!-- theme stylesheet: Retro by default; the Style menu (js/styles.js) swaps it -->
 <script type="importmap">
 {
   "imports": {
@@ -26,6 +26,10 @@
     <input id="project-name" class="project-name" type="text" aria-label="Project name" autocomplete="off">
   </div>
   <div class="top-actions">
+    <div class="style-menu">
+      <button type="button" class="btn" id="btn-style" aria-haspopup="menu" aria-expanded="false" aria-controls="style-list" title="Change the look of the site">Style: Retro</button>
+      <div class="style-list" id="style-list" role="menu" aria-label="Style" hidden></div>
+    </div>
     <button type="button" class="btn" id="btn-tour" title="Take the guided tour of the site">Tutorial</button>
     <button type="button" class="btn" id="btn-import" title="Load a project from a .json file">Import JSON</button>
     <button type="button" class="btn" id="btn-export-stl" title="Download the whole robot, every motor and link with all interior parts, as one STL">Export STL</button>

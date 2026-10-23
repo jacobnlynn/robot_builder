@@ -1,0 +1,175 @@
+/* Datasheet theme: the builder as a component spec sheet. White paper, black rules, condensed
+   type, monospace figures and one signal-blue accent. Loaded after style.css and only overrides it. */
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-sunk: #f4f5f7;
+  --viewport: #f4f5f7;
+  --line: #d9dce0;
+  --line-strong: #111316;
+  --ink: #111316;
+  --ink-2: #2b2f35;
+  --muted: #5b6068;
+  --accent: #0a4bd6;
+  --accent-ink: #0a4bd6;
+  --accent-soft: #e8efff;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --danger-line: #b42318;
+  --overlay: rgb(255 255 255 / 0.94);
+  --shadow-float: none;
+  --shadow-raised: none;
+
+  --font-ui: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --radius: 0;
+  --radius-sm: 0;
+}
+
+body { font-size: 14px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hint { font-size: 12px; }
+
+/* ---- Masthead: the file bar is the sheet's title block ---- */
+.filebar { margin-bottom: 0; padding-block: 14px 12px; border-bottom: 3px solid var(--ink); align-items: flex-end; }
+.brand { align-items: flex-end; }
+.brand svg { display: none; }
+.brand-name { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
+.brand-name::before {
+  content: "MRB-01 · ROBOT ASSEMBLY DATASHEET";
+  display: block;
+  margin-bottom: 4px;
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.brand-sep { color: var(--line); font-size: 24px; }
+.project-name { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
+.project-name:focus { border-color: var(--ink); }
+/* The file actions are one joined row of cells */
+.top-actions { gap: 0; border: 1px solid var(--ink); }
+.top-actions .btn { min-height: 38px; border: 0; border-right: 1px solid var(--ink); }
+.top-actions .btn:last-child { border-right: 0; background: var(--accent); color: #ffffff; font-weight: 600; }
+.top-actions .btn:last-child:hover { background: #083ba8; }
+.top-actions .btn.is-armed { background: var(--danger-soft); color: var(--danger); }
+
+/* ---- Tool bar ---- */
+.toolbar { border-bottom: 1px solid var(--ink); }
+.examples-label { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.examples .btn { padding: 4px 6px; border: 0; background: transparent; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.examples .btn:hover { background: var(--accent-soft); }
+.examples .btn.is-armed { color: var(--danger); background: var(--danger-soft); }
+
+/* Toggle groups become underlined tabs */
+.segmented, .tabs { gap: 18px; padding: 0; background: transparent; border: 0; }
+.segmented button, .tab { padding: 6px 0; border-radius: 0; border-bottom: 2px solid transparent; color: var(--muted); }
+.segmented button[aria-pressed="true"], .tab[aria-selected="true"], .tab[aria-pressed="true"] {
+  background: transparent; color: var(--ink); font-weight: 600; box-shadow: none; border-bottom-color: var(--accent);
+}
+.tabs { display: flex; }
+
+/* ---- Buttons ---- */
+.btn { border-color: var(--ink); }
+.btn-primary { color: #ffffff; }
+.btn-primary:hover { background: #083ba8; border-color: #083ba8; }
+.btn-ghost { border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.btn-danger { border-color: var(--danger); }
+#btn-data { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* ---- Panels: ruled columns, numbered sections ---- */
+.panel-left { border-right: 1px solid var(--ink); counter-reset: section; }
+.panel-right { border-left: 1px solid var(--ink); }
+.panel-section, .insp-section { padding: 16px 20px; border-bottom: 1px solid var(--ink); }
+.panel-section:last-child, .insp-section:last-child { border-bottom: 0; }
+.section-title { font-size: 15px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
+.panel-left .section-title::before { counter-increment: section; content: counter(section) " · "; }
+.count { font-size: 11px; }
+
+/* Assembly: a parts table */
+.tree ul { border-left-color: var(--line); }
+.tree-row, .tree-port { min-height: 32px; border-bottom: 1px solid var(--line); }
+.tree-row:hover, .tree-port:hover { background: var(--panel-sunk); }
+.tree-row.is-selected, .tree-port.is-selected { background: var(--accent-soft); box-shadow: none; font-weight: 600; }
+.tree-name { font-weight: 400; }
+.tree-row.is-selected .tree-name { font-weight: 600; }
+.tree-meta { color: var(--ink-2); }
+.chip { border-radius: 0; }
+.branch-label { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.joint output { color: var(--ink); }
+
+/* ---- 3D view: a captioned figure ---- */
+.vp-badge { background: transparent; border: 0; padding: 0; font: 400 11.5px var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.vp-badge::before { content: "Fig. 1 — "; }
+.vp-badge::after { content: " view"; }
+.vp-hint { font-family: var(--font-mono); font-size: 11px; }
+.vp-legend, .vp-tools { border: 1px solid var(--ink); background: #ffffff; }
+.swatch { border-radius: 0; }
+
+/* ---- Inspector: a spec block ---- */
+.eyebrow { font: 500 11px var(--font-mono); letter-spacing: 0.06em; color: var(--muted); }
+.insp-title, .title-input { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.title-input:hover { border-color: var(--line); }
+.title-input:focus { border-color: var(--ink); }
+.field > label, .label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.field input[type="text"], .field select, .stack select, .dh-cell input, .dialog textarea, .mount-num {
+  border: 1px solid var(--ink); border-radius: 0; background: #ffffff;
+}
+.field input[type="text"]:focus, .field select:focus, .stack select:focus, .dh-cell input:focus, .dialog textarea:focus {
+  border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
+}
+.stack { border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.stack-item + .stack-item { border-top-color: var(--line); }
+.stack-motor { background: transparent; }
+.stack-name { font-weight: 600; }
+.dh { border: 1px solid var(--ink); }
+.dh legend { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.tag { border-radius: 0; background: var(--ink); color: #ffffff; }
+.summary div { border-top: 1px solid var(--ink); background: transparent; padding-inline: 0; }
+.summary dd { font-weight: 600; }
+
+/* Matrices sit in brackets */
+.matrix { background: transparent; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); color: var(--ink-2); }
+.matrix .is-pos { color: var(--ink); font-weight: 600; border-left-color: var(--line); }
+.matrix-label { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ---- Status bar: the sheet's footer ---- */
+.statusbar { padding-block: 8px; border-top: 3px solid var(--ink); font: 11.5px var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-2); }
+.units-toggle { gap: 0; border: 1px solid var(--ink); }
+.units-toggle button { padding: 1px 10px; border-bottom: 0; }
+.units-toggle button[aria-pressed="true"] { background: var(--ink); color: #ffffff; }
+
+/* ---- Windows ---- */
+.dialog { border: 1px solid var(--ink); }
+.dialog::backdrop { background: rgb(17 19 22 / 0.28); }
+.dialog-head { border-bottom: 3px solid var(--ink); }
+.dialog-head h2 { font-size: 18px; font-weight: 700; }
+.dialog-foot { border-top: 1px solid var(--ink); }
+.data-title { font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.data-sep { border-top: 3px solid var(--ink); }
+.mtx thead th, .data-table thead th { border-bottom-color: var(--ink); color: var(--ink-2); }
+.formula-code { border-color: var(--ink); background: #ffffff; }
+.export-note { border-left-color: var(--accent); background: var(--accent-soft); }
+
+/* Tour window */
+.tour { border: 1px solid var(--ink); background: #ffffff; }
+.tour-head { border-bottom: 3px solid var(--ink); padding-bottom: 8px; }
+.tour-head h2 { font-size: 17px; font-weight: 700; }
+.tour-count { font-family: var(--font-mono); font-size: 11px; }
+.tour-body { padding-top: 10px; }
+.tour-foot { border-top-color: var(--ink); }
+.tour-target { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Tree window */
+.ot-box { border-color: var(--ink); }
+.ot-box.is-selected { background: var(--accent-soft); }
+.otree ul::before, .otree ul > li::before, .otree ul > li::after { border-color: var(--ink); }
+
+@media (max-width: 860px) {
+  .panel { border-top: 1px solid var(--ink); }
+  .brand-name { font-size: 24px; }
+}
+
+/* Style menu */
+.style-list { border: 1px solid var(--ink); padding: 0; }
+.style-option { border-bottom: 1px solid var(--line); }
+.style-option:last-child { border-bottom: 0; }

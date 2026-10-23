@@ -272,3 +272,10 @@ input[type="range"] { accent-color: var(--accent); }
 .tour-target { outline: 2px dashed #000080; outline-offset: 2px; }
 .data-formula summary { color: #000080; text-decoration: underline; }
 .formula-code { border: 2px solid; border-color: var(--sunken); border-radius: 0; background: #ffffff; color: #000000; }
+
+/* Style menu: a raised box like the site's windows; the hovered choice is navy */
+.style-list { padding: 2px; border: 2px solid; border-color: var(--raised); border-radius: 0; background: var(--panel); box-shadow: 2px 2px 0 #000000; }
+.style-option { border-radius: 0; }
+.style-option:hover, .style-option:focus-visible { background: #000080; color: #ffffff; }
+.style-option:hover .style-note, .style-option:focus-visible .style-note { color: #ffffff; }
+.style-option[aria-checked="true"]::before { color: inherit; }

@@ -17,6 +17,7 @@ const COLORS = {
   simpleLine: 0x28313b,
   simpleJoint: 0x6a7889,
 };
+const DEFAULT_COLORS = { ...COLORS }; // a theme's scene colours replace these (see styles.js)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GROW_MS = reducedMotion ? 1 : 650;
 const ORIGIN = new THREE.Vector3();
@@ -611,6 +612,11 @@ export function createViewer(container, { onPick }) {
 
   return {
     redraw, update, fit, pose, pickAt, rayAt, setDragMarker, setWorkspace, camera, controls,
+    /** Scene colours for a theme (background, select, seam, simpleLine, simpleJoint); {} restores the defaults. */
+    setSceneColors(c) {
+      Object.assign(COLORS, DEFAULT_COLORS, c);
+      scene.background.set(COLORS.background);
+    },
     canvas: renderer.domElement,
     onFrame: (fn) => frameHooks.add(fn),
   };

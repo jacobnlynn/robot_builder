@@ -1,0 +1,174 @@
+/* Risograph theme: the builder printed in two inks, fluorescent pink and medium blue, on
+   newsprint. Blue does the text and linework; pink is the second ink, used for selection and for
+   the solid offset shadows on buttons and windows. Loaded after style.css and only overrides it. */
+:root {
+  --bg: #f4f1ea;
+  --panel: #f4f1ea;
+  --panel-sunk: #ebe5e6;
+  --viewport: #f4f1ea;
+  --line: #b3bfe8;
+  --line-strong: #1f4fd8;
+  --ink: #1f4fd8;
+  --ink-2: #2346b5;
+  --muted: #4a5fb8;
+  --accent: #ff4f9a; /* pink ink, for fills and marks */
+  --accent-ink: #c8146a; /* pink dark enough for small text */
+  --accent-soft: #f9c6db;
+  --danger: #c8146a;
+  --danger-soft: #f9c6db;
+  --danger-line: #c8146a;
+  --overlay: #f4f1ea;
+  --pink-shadow: 3px 3px 0 #ff4f9a;
+  --shadow-float: 4px 4px 0 #ff4f9a;
+  --shadow-raised: none;
+
+  --font-ui: "Karla", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-display: "Rubik Mono One", "Arial Black", sans-serif;
+  --radius: 0;
+  --radius-sm: 0;
+}
+
+/* Paper with a fine grain of both inks */
+body {
+  font-size: 14px;
+  background-color: var(--bg);
+  background-image: radial-gradient(rgb(31 79 216 / 0.09) 0.8px, transparent 1px), radial-gradient(rgb(255 79 154 / 0.10) 0.8px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 5px;
+}
+.panel, .topbar, .statusbar { background: transparent; }
+:focus-visible { outline: 2px dashed var(--accent-ink); outline-offset: 2px; }
+.hint { font-size: 12px; }
+
+/* Zine voice: controls and labels in lower case */
+.btn, .segmented button, .tab, .section-title, .eyebrow, .examples-label, .vp-badge, .statusbar, .branch-label, .dh legend {
+  text-transform: lowercase;
+}
+
+/* ---- Masthead ---- */
+.filebar { margin-bottom: 6px; padding-block: 12px; border-bottom: 2px solid var(--ink); }
+.brand svg { display: none; }
+.brand-name { font: 400 30px/1 var(--font-display); letter-spacing: 0; }
+.brand-sep { color: var(--accent); font-size: 22px; }
+.project-name { font-family: var(--font-mono); color: var(--accent-ink); }
+.project-name:focus { border-color: var(--ink); background: var(--bg); }
+
+/* ---- Buttons: blue ink outlines; the main action is solid blue with a pink offset ---- */
+.btn { border: 2px solid var(--ink); background: transparent; color: var(--ink); font: 700 12.5px var(--font-mono); }
+.btn:hover { background: var(--accent-soft); }
+.btn-primary, #btn-new { background: var(--ink); color: var(--bg); box-shadow: var(--pink-shadow); }
+.btn-primary:hover, #btn-new:hover { background: var(--ink-2); }
+.btn-ghost { border-color: transparent; color: var(--accent-ink); }
+.btn-danger { border-style: dashed; border-color: var(--danger); color: var(--danger); }
+.btn.is-armed { background: var(--accent-soft); border-color: var(--danger); color: var(--danger); }
+#btn-data { border-color: var(--accent-ink); color: var(--accent-ink); }
+.icon-btn { color: var(--ink); }
+.icon-btn:hover:not(:disabled) { background: var(--accent-soft); color: var(--danger); }
+
+/* ---- Tool bar ---- */
+.toolbar { border-bottom: 2px solid var(--ink); }
+.examples-label { font-family: var(--font-mono); font-size: 12px; color: var(--accent-ink); }
+.examples-label::after { content: " →"; }
+.examples .btn { border: 0; padding: 4px 6px; font: 700 14px var(--font-ui); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Toggle groups: the chosen one gets a pink overprint */
+.segmented, .tabs { gap: 4px; padding: 0; background: transparent; border: 0; }
+.segmented button, .tab { font-family: var(--font-mono); color: var(--ink); }
+.segmented button[aria-pressed="true"], .tab[aria-selected="true"], .tab[aria-pressed="true"] {
+  background: rgb(255 79 154 / 0.5); color: var(--ink); font-weight: 700; box-shadow: none; mix-blend-mode: multiply;
+}
+
+/* ---- Panels: dashed rules between sections ---- */
+.panel-left { border-right: 2px solid var(--ink); }
+.panel-right { border-left: 2px solid var(--ink); }
+.panel-section, .insp-section { border-bottom: 1.5px dashed var(--ink); }
+.panel-section:last-child, .insp-section:last-child { border-bottom: 0; }
+.section-title { font: 400 15px var(--font-display); letter-spacing: 0; color: var(--accent-ink); }
+.count { color: var(--ink); }
+
+.tree ul { border-left: 1.5px dashed var(--line); }
+.tree-row, .tree-port { border-bottom: 1px dashed var(--line); }
+.tree-row:hover, .tree-port:hover { background: var(--panel-sunk); }
+.tree-row.is-selected, .tree-port.is-selected { background: rgb(255 79 154 / 0.45); box-shadow: none; mix-blend-mode: multiply; }
+.tree-row.is-selected .tree-name { font-weight: 700; }
+.tree-meta { font-size: 11.5px; color: var(--ink-2); }
+.tree-port .tree-name { color: var(--accent-ink); }
+.chip { border-radius: 0; }
+.port-dot::before { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.joint label { font-weight: 600; }
+.joint output { color: var(--ink); }
+input[type="range"] { accent-color: var(--accent); }
+
+/* ---- 3D view ---- */
+.viewport { box-shadow: inset 0 0 0 2px var(--ink); }
+.vp-badge { background: var(--bg); border: 0; font: 400 12px var(--font-mono); letter-spacing: 0; color: var(--ink); }
+.vp-badge::before { content: "fig. "; color: var(--accent-ink); }
+.vp-legend, .vp-tools { background: var(--bg); border: 1.5px dashed var(--ink); }
+.vp-hint { font-family: var(--font-mono); color: var(--ink-2); }
+.swatch { border-radius: 0; }
+
+/* ---- Inspector ---- */
+.eyebrow { font: 400 12px var(--font-mono); letter-spacing: 0; color: var(--accent-ink); }
+.insp-title, .title-input { font: 400 26px/1.1 var(--font-display); letter-spacing: 0; }
+.title-input:hover { border-color: var(--line); }
+.title-input:focus { border-color: var(--ink); }
+.field > label, .label { font-size: 13px; font-weight: 700; color: var(--ink); }
+/* Fields are underlines, as if filled in by hand */
+.field input[type="text"], .field select, .stack select, .dh-cell input, .mount-num {
+  border: 0; border-bottom: 2px solid var(--ink); border-radius: 0; background: transparent; font-family: var(--font-mono);
+}
+.dialog textarea { border: 2px solid var(--ink); background: transparent; }
+.field input[type="text"]:focus, .field select:focus, .stack select:focus, .dh-cell input:focus, .dialog textarea:focus {
+  border-color: var(--accent-ink); box-shadow: none;
+}
+.stack { border: 2px solid var(--ink); }
+.stack-item + .stack-item { border-top: 1.5px dashed var(--line); }
+.stack-motor { background: rgb(31 79 216 / 0.08); }
+.dh { border: 1.5px dashed var(--ink); }
+.dh legend { font-family: var(--font-mono); font-weight: 700; }
+.tag { border-radius: 0; background: var(--accent); color: var(--ink); }
+.summary div { background: transparent; border: 1.5px dashed var(--line); }
+.matrix { background: transparent; border: 1.5px dashed var(--line); color: var(--ink-2); }
+.matrix .is-pos { color: var(--accent-ink); font-weight: 700; border-left-color: var(--line); }
+.formula { color: var(--ink-2); }
+.info summary { border-color: var(--ink); color: var(--ink); }
+.info-pop { background: var(--bg); border: 2px solid var(--ink); box-shadow: var(--shadow-float); }
+
+/* ---- Status bar ---- */
+.statusbar { border-top: 2px solid var(--ink); font: 12px var(--font-mono); color: var(--ink); }
+.units-toggle button[aria-pressed="true"] { background: rgb(255 79 154 / 0.5); }
+
+/* ---- Windows: paper sheets with a pink offset ---- */
+.dialog { border: 2px solid var(--ink); background: var(--bg); color: var(--ink); box-shadow: var(--shadow-float); }
+.dialog::backdrop { background: rgb(31 79 216 / 0.22); }
+.dialog-head { border-bottom: 2px solid var(--ink); }
+.dialog-head h2 { font: 400 18px var(--font-display); }
+.dialog-foot { border-top: 1.5px dashed var(--ink); }
+.data-title { font: 400 16px var(--font-display); color: var(--accent-ink); }
+.data-sep { border-top: 1.5px dashed var(--ink); }
+.mtx, .data-table { color: var(--ink); }
+.mtx thead th, .data-table thead th, .mtx tbody th { color: var(--ink-2); border-bottom-color: var(--ink); }
+.formula-code { background: transparent; border: 1.5px dashed var(--ink); }
+.export-note { border-left-color: var(--accent); background: var(--accent-soft); }
+
+.tour { border: 2px solid var(--ink); background: var(--bg); box-shadow: var(--shadow-float); }
+.tour-head h2 { font: 400 16px var(--font-display); color: var(--ink); }
+.tour-count { font-family: var(--font-mono); color: var(--accent-ink); }
+.tour-foot { border-top: 1.5px dashed var(--ink); }
+.tour-target { outline: 3px dashed var(--accent); outline-offset: 3px; }
+
+.ot-box { border: 2px solid var(--ink); background: var(--bg); }
+.ot-box.is-selected { background: rgb(255 79 154 / 0.45); }
+.otree ul::before, .otree ul > li::before, .otree ul > li::after { border-color: var(--ink); }
+
+@media (max-width: 860px) {
+  .panel { border-top: 2px solid var(--ink); }
+  .brand-name { font-size: 22px; }
+}
+
+/* Style menu: a paper slip with the pink offset */
+.style-list { border: 2px solid var(--ink); background: var(--bg); box-shadow: var(--shadow-float); }
+.style-name { font-family: var(--font-mono); text-transform: lowercase; }
+.style-option:hover, .style-option:focus-visible { background: rgb(255 79 154 / 0.45); }
+.style-note { color: var(--ink-2); }
