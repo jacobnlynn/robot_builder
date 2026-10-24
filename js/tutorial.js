@@ -161,16 +161,16 @@ const STEPS = [
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); },
   },
   {
-    title: 'Export STL',
-    target: '#btn-export-stl',
-    text: `<p>Export STL downloads the whole robot as one file: every actuator as its full model with all of its
+    title: 'Export STEP',
+    target: '#btn-export-step',
+    text: `<p>Export STEP downloads the whole robot as one CAD assembly: every actuator as its full model with all of its
       interior parts, and every link filled in as a printable part.</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cadfile'); },
   },
   {
     title: 'From file to robot',
-    target: '#btn-export-stl',
-    text: `<p>That STL is meant to be a complete robot model: print and assemble the parts, and all that is left is to
+    target: '#btn-export-step',
+    text: `<p>That STEP file is meant to be a complete robot model: print and assemble the parts, and all that is left is to
       wire the motors and program it.</p>
       <p>(The full models may still have small mechanical bugs while the design is being refined.)</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cadfile'); },

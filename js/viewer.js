@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { STLExporter } from 'three/addons/exporters/STLExporter.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS } from './constants.js';
-import { localKinematics } from './kinematics.js';
+import { loadStepMesh } from './stepmesh.js';
+import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES } from './constants.js';
 import { isCapped } from './robot.js';
 
 // Robotics convention: Z is up. Must be set before any camera or light is created.
@@ -116,76 +113,45 @@ export function buildCadPart(node, kin, selected = false) {
   return g;
 }
 
-// ---- CAD tab: the designed module shells ----
+// ---- CAD tab: the designed modules, from their STEP files ----
 
 /**
- * Shell files, loaded once and shared by every part. Each can be .glb or .stl; .glb is tried first.
- *  - motor: the motor with its built-in first gearbox. Origin at the centre of the mounting (input)
- *    face, input axis up, output shaft pointing along +x.
- *  - gearbox: one add-on stage (every type has the same shape). Origin at the centre of its input
- *    face, shaft pointing up.
- *  - input / output: the connector a link starts and ends with. Origin at the centre of the mating
- *    face, pointing up (away from the part it mates with for the input, outward for the output).
- * Units are detected from the size (m, cm or mm). Fusion 360 exports Y-up, so with CAD_UP = 'y'
- * each file is turned +90° about x (its +y becomes +z). Until a file loads, a placeholder is drawn.
- * Every module is drawn in its family colour, like the Model view; the files' own colours are not used.
+ * One STEP file per module, read on demand and shared by every part that uses it:
+ *  - motor:<family>: the full motor with its built-in first gearbox of that type. Origin at the
+ *    centre of the mounting (input) face, input axis up, output shaft pointing along +x.
+ *  - extension:<family>: one add-on stage of that type. Origin at the centre of its input face,
+ *    shaft pointing up.
+ *  - input / output: the connectors a link starts and ends with. Origin at the centre of the
+ *    mating face, pointing up (away from the part it mates with for the input, outward for the output).
+ * Fusion 360 exports Y-up, so with CAD_UP = 'y' each file is turned +90° about x (its +y becomes +z).
+ * Until a file has loaded, a placeholder is drawn. Every module is drawn in its family colour.
  */
-// The .stl.b64.txt copies (base64 text) are only for hosts that won't serve .glb / .stl files.
 export const CAD_FILES = {
-  motor: ['models/motor.glb', 'models/motor.stl', 'models/motor.stl.b64.txt'],
-  gearbox: ['models/gearbox.glb', 'models/gearbox.stl', 'models/gearbox.stl.b64.txt'],
-  input: ['models/input.glb', 'models/input.stl', 'models/input.stl.b64.txt'],
-  output: ['models/output.glb', 'models/output.stl', 'models/output.stl.b64.txt'],
+  motor: (family) => `models/${family}_gearbox.step`,
+  extension: (family) => `models/${family}_extension.step`,
+  input: 'models/input.step',
+  output: 'models/output.step',
 };
 export const CAD_UP = 'y'; // 'y' for Fusion 360's default; 'z' for files already exported Z-up
 // The motor file's built-in gearbox: everything in front of this plane (mm along the output axis,
-// from the input axis) and above the input boss. Measured from motor.stl: from here forward its
-// profile matches gearbox.stl.
+// from the input axis) and above the input boss.
 const BUILT_IN_GEARBOX_START = -2.94;
 const HOUSING_RADIUS = 35.7; // about the output axis; anything reaching lower belongs to the input boss
-// Geometry once loaded, in mm in the part's frame. The motor is split into { motor, firstGearbox }.
-const cadGeometry = { motor: null, gearbox: null, input: null, output: null };
-const cadStatus = Object.fromEntries(Object.keys(CAD_FILES).map((k) => [k, 'loading'])); // 'loading' | 'loaded' | 'missing'
-// Rough longest side in mm, for unit detection.
-const SHELL_SIZE = { motor: 3 * 25.4, gearbox: 1.6 * 25.4, input: 70, output: 62 };
 
-/** Every triangle of a loaded file as one position-only geometry, in the file's own units. */
-function loadTriangles(url) {
-  if (url.endsWith('.stl')) return new STLLoader().loadAsync(url);
-  if (url.endsWith('.stl.b64.txt')) {
-    return fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status))))
-      .then((text) => new STLLoader().parse(Uint8Array.from(atob(text.trim()), (c) => c.charCodeAt(0)).buffer));
-  }
-  return new GLTFLoader().loadAsync(url).then((gltf) => {
-    const parts = [];
-    gltf.scene.updateMatrixWorld(true);
-    gltf.scene.traverse((o) => {
-      if (!o.isMesh) return;
-      const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(o.matrixWorld);
-      parts.push(g.attributes.position.array);
-    });
-    const all = new Float32Array(parts.reduce((n, a) => n + a.length, 0));
-    parts.reduce((at, a) => { all.set(a, at); return at + a.length; }, 0);
-    return new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(all, 3));
-  });
-}
+const cad = new Map(); // key → { status: 'loading' | 'loaded' | 'missing', geometry, promise }
+let onCadChange = () => {};
+/** Called whenever a module file finishes loading (or fails), so the page can redraw. */
+export function setCadListener(fn) { onCadChange = fn; }
 
-/** Scale to mm (the unit that brings the longest side closest to `expected`), turn Z-up, keep positions only. */
-function normalise(geometry, expected) {
-  geometry.computeBoundingBox();
-  const size = geometry.boundingBox.getSize(new THREE.Vector3());
-  const longest = Math.max(size.x, size.y, size.z) || 1;
-  const off = (s) => Math.abs(Math.log(longest * s / expected));
-  const scale = [1000, 10, 1].reduce((best, s) => (off(s) < off(best) ? s : best), 1);
-  const m = new THREE.Matrix4().makeScale(scale, scale, scale);
-  if (CAD_UP === 'y') m.premultiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-  geometry.applyMatrix4(m);
-  for (const k of Object.keys(geometry.attributes)) if (k !== 'position') geometry.deleteAttribute(k);
-  return geometry;
-}
+const urlFor = (key) => {
+  const [kind, family] = key.split(':');
+  return typeof CAD_FILES[kind] === 'function' ? CAD_FILES[kind](family) : CAD_FILES[kind];
+};
 
+/** Turn a file-frame geometry Z-up and give it flat normals. */
 function finish(geometry) {
-  geometry.computeVertexNormals(); // flat facet normals; some exporters leave the stored ones blank
+  if (CAD_UP === 'y') geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+  geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;
 }
@@ -199,46 +165,75 @@ function splitTriangles(geometry, inside) {
     const into = inside(x, zMin) ? a : b;
     for (let k = 0; k < 9; k++) into.push(p[i + k]);
   }
-  return [a, b].map((arr) => finish(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(arr, 3))));
+  return [a, b].map((arr) => {
+    const g = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
+    return g;
+  });
 }
 
-export function loadCadModels(onChange) {
-  const rise = Object.values(MOTORS)[0].rise;
-  for (const key of Object.keys(CAD_FILES)) {
-    const tryNext = ([url, ...rest]) => {
-      if (!url) { cadStatus[key] = 'missing'; onChange(); return; }
-      loadTriangles(url).then((raw) => {
-        const g = normalise(raw.index ? raw.toNonIndexed() : raw, SHELL_SIZE[key]);
-        if (key === 'motor') {
-          const [firstGearbox, motor] = splitTriangles(g, (x, zMin) => x > BUILT_IN_GEARBOX_START && zMin > rise - HOUSING_RADIUS);
-          cadGeometry.motor = { motor, firstGearbox };
-        } else {
-          cadGeometry[key] = finish(g);
-        }
-        cadStatus[key] = 'loaded';
-        onChange();
-      }, () => tryNext(rest));
-    };
-    tryNext(CAD_FILES[key]);
-  }
+/** Start loading a module file (once). Resolves to its geometry, or null if it could not be read. */
+export function loadCad(key) {
+  let entry = cad.get(key);
+  if (entry) return entry.promise;
+  entry = { status: 'loading', geometry: null };
+  entry.promise = loadStepMesh(urlFor(key)).then((raw) => {
+    const g = finish(raw);
+    if (key.startsWith('motor:')) {
+      // Colour the built-in gearbox like its type: split it off the motor by position.
+      const rise = Object.values(MOTORS)[0].rise;
+      const [firstGearbox, motor] = splitTriangles(g, (x, zMin) => x > BUILT_IN_GEARBOX_START && zMin > rise - HOUSING_RADIUS);
+      entry.geometry = { motor, firstGearbox, whole: g };
+    } else {
+      entry.geometry = g;
+    }
+    entry.status = 'loaded';
+    onCadChange();
+    return entry.geometry;
+  }, (e) => {
+    console.warn(e);
+    entry.status = 'missing';
+    onCadChange();
+    return null;
+  });
+  cad.set(key, entry);
+  return entry.promise;
 }
-export const cadModelStatus = () => ({ ...cadStatus });
-/** The loaded shells (mm, Z-up, each in its part's frame), or null until all four have loaded. */
-export function cadShellGeometry() {
-  const { motor, gearbox, input, output } = cadGeometry;
-  if (!motor || !gearbox || !input || !output) return null;
-  return { motor: motor.motor, firstGearbox: motor.firstGearbox, gearbox, input, output };
+
+/** A module's geometry if it has loaded, else null (and it starts loading; the page redraws when ready). */
+export function cadGeometry(key) {
+  const entry = cad.get(key);
+  if (!entry) { loadCad(key); return null; }
+  return entry.geometry;
+}
+
+/** The files an actuator needs: its motor (by first gearbox) and one extension per extra stage. */
+export function actuatorCadKeys(n) {
+  const [first, ...extra] = n.gearboxes.map((k) => GEARBOXES[k].family);
+  return [`motor:${first}`, ...extra.map((f) => `extension:${f}`)];
+}
+
+/** Wait for these files; resolves to true if all of them loaded. */
+export async function whenCadReady(keys) {
+  const all = await Promise.all(keys.map(loadCad));
+  return all.every(Boolean);
+}
+
+/** For the legend: how many files are still loading, and which could not be read. */
+export function cadModelStatus() {
+  const list = [...cad.entries()];
+  return { loading: list.filter(([, e]) => e.status === 'loading').length, missing: list.filter(([, e]) => e.status === 'missing').map(([k]) => k) };
 }
 
 /**
  * Optional add-ons, set by modules that main.js imports (each can be removed with its import line):
  *  - linkFill(node, kin): a link's filled solid for the CAD tab, or null (it may arrive later via redraw)
- *  - linkFillSTL(node): Promise of that solid as an STL Blob
  *  - linkFillError: why the last link fill failed, if one did
  *  - tubeShape / setTubeShape: 'round' or 'square' tubes for the filled links
  * redraw is filled in by createViewer.
  */
-export const hooks = { linkFill: null, linkFillSTL: null, linkFillError: null, redraw: null };
+export const hooks = { linkFill: null, linkFillError: null, redraw: null };
 
 // One material per colour, shared by every shell that isn't selected.
 const shellMaterials = new Map();
@@ -257,9 +252,9 @@ function shellMesh(geometry, color, matrix, selected) {
 }
 
 /**
- * CAD tab: every part as its designed shells, each module in its family colour.
- * A link is an input connector where it attaches and, on each output, an output connector or the
- * sphere it ends in, with nothing between them yet. The base link isn't drawn.
+ * CAD tab: every part as its designed module, each in its family colour.
+ * A link is its filled part when that is ready; until then its input connector where it attaches
+ * and, on each output, an output connector or the sphere it ends in. The base link isn't drawn.
  */
 function buildShellPart(node, kin, selected = false) {
   if (node.type === 'link') {
@@ -267,21 +262,24 @@ function buildShellPart(node, kin, selected = false) {
     if (!node.parent) return g; // the base is the world anchor; nothing to draw
     const filled = hooks.linkFill?.(node, kin);
     if (filled) { g.add(shellMesh(filled, FAMILY_COLORS.link, new THREE.Matrix4(), selected)); return g; }
-    if (cadGeometry.input) g.add(shellMesh(cadGeometry.input, FAMILY_COLORS.link, new THREE.Matrix4(), selected));
+    const input = cadGeometry('input'), output = cadGeometry('output');
+    if (input) g.add(shellMesh(input, FAMILY_COLORS.link, new THREE.Matrix4(), selected));
     kin.outputs.forEach((m, i) => {
       if (isCapped(node, i)) g.add(ball(new THREE.Vector3().setFromMatrixPosition(m), node.outputs[i].sphere, surface(FAMILY_COLORS.link, selected)));
-      else if (cadGeometry.output) g.add(shellMesh(cadGeometry.output, FAMILY_COLORS.link, m, selected));
+      else if (output) g.add(shellMesh(output, FAMILY_COLORS.link, m, selected));
     });
     return g;
   }
   if (node.type !== 'actuator') return new THREE.Group();
-  if (!cadGeometry.motor) return buildCadPart(node, kin, selected); // placeholder until the motor file loads
-  const g = new THREE.Group();
   const [, first, ...extra] = kin.segments;
-  g.add(shellMesh(cadGeometry.motor.motor, FAMILY_COLORS.motor, kin.mount, selected));
-  g.add(shellMesh(cadGeometry.motor.firstGearbox, FAMILY_COLORS[first.family], kin.mount, selected));
+  const motor = cadGeometry(`motor:${first.family}`);
+  if (!motor) return buildCadPart(node, kin, selected); // placeholder until the motor file loads
+  const g = new THREE.Group();
+  g.add(shellMesh(motor.motor, FAMILY_COLORS.motor, kin.mount, selected));
+  g.add(shellMesh(motor.firstGearbox, FAMILY_COLORS[first.family], kin.mount, selected));
   for (const s of extra) {
-    g.add(cadGeometry.gearbox ? shellMesh(cadGeometry.gearbox, FAMILY_COLORS[s.family], s.start, selected)
+    const stage = cadGeometry(`extension:${s.family}`);
+    g.add(stage ? shellMesh(stage, FAMILY_COLORS[s.family], s.start, selected)
       : mesh(cylinderZ(s.def.radius, s.length), surface(FAMILY_COLORS[s.family], selected), s.start));
   }
   // The output flange turns with the joint, so it stays a separate part.
@@ -620,14 +618,4 @@ export function createViewer(container, { onPick }) {
     canvas: renderer.domElement,
     onFrame: (fn) => frameHooks.add(fn),
   };
-}
-
-/**
- * Binary STL of a link's CAD geometry, in the link's input frame (mm).
- * `kin` is the link's solved local kinematics (frames[id].local), since pose outputs can depend on other parts.
- */
-export function linkToSTL(node, kin = localKinematics(node)) {
-  const group = buildCadPart(node, kin);
-  group.updateMatrixWorld(true);
-  return new STLExporter().parse(group, { binary: true });
 }

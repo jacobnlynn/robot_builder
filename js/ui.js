@@ -8,10 +8,10 @@ import {
   forwardKinematics, solveLinks, stackRatio, formatRatio, actuatorReach,
   dhToMatrix, matrixToDH, poseToMatrix, homeFrame, poseFromLocal, localKinematics,
 } from './kinematics.js';
-import { linkToSTL, cadModelStatus, hooks } from './viewer.js';
+import { cadModelStatus, hooks } from './viewer.js';
 import { initSim, jointSpeed } from './simulate.js';
 import { computeWorkspaces, workspaceMesh } from './workspace.js';
-import { exportRobotSTL } from './fullexport.js';
+import { exportRobotSTEP, exportLinkSTEP } from './stepexport.js';
 import { exportURDF } from './urdf.js';
 import { EXAMPLES } from './examples.js';
 import * as THREE from 'three';
@@ -229,8 +229,10 @@ function renderViewChrome() {
   }
   if (state.view === 'cadfile') {
     const st = cadModelStatus();
-    const note = Object.entries(st).filter(([, s]) => s !== 'loaded')
-      .map(([k, s]) => `${k[0].toUpperCase() + k.slice(1)} ${s === 'loading' ? 'loading…' : 'file missing'}`);
+    const note = [
+      ...(st.loading ? [`Loading ${st.loading} STEP model${st.loading === 1 ? '' : 's'}…`] : []),
+      ...st.missing.map((k) => `Could not load ${k.replace(':', ' ')} model`),
+    ];
     $('#legend').innerHTML = [item('', hex(FAMILY_COLORS.motor), 'Motor'),
       ...Object.entries(FAMILY_LABELS).map(([k, l]) => item('', hex(FAMILY_COLORS[k]), l)),
       item('', hex(FAMILY_COLORS.link), 'Link connectors'),
@@ -551,8 +553,7 @@ function partInspector(n) {
     <div class="insp-section insp-body">${body}</div>
     ${matrixSection(n.outputs?.length > 1 ? 'Output frames in world' : 'Output frame in world')}
     <div class="insp-section insp-actions">
-      ${n.type === 'link' ? '<button type="button" class="btn" data-act="export-stl">Export link STL</button>' : ''}
-      ${n.type === 'link' && !fixed && hooks.linkFillSTL ? '<button type="button" class="btn" data-act="export-fill">Export filled STL</button>' : ''}
+      ${n.type === 'link' && !fixed && hooks.linkPartPlan ? '<button type="button" class="btn" data-act="export-link-step">Export link STEP</button>' : ''}
       ${n.type === 'link' && !fixed && hooks.linkPart?.(n).length > 1 ? `<p class="hint part-note">Prints as one piece: ${hooks.linkPart(n).map(esc).join(' + ')}</p>` : ''}
       ${fixed ? '' : `<button type="button" class="btn btn-danger" data-act="delete">${count > 1 ? `Delete with ${count - 1} attached` : 'Delete part'}</button>`}
     </div>`;
@@ -1183,18 +1184,17 @@ function bindInspector() {
       case 'delete':
         requestDelete(data.id);
         break;
-      case 'export-fill': {
-        b.disabled = true;
-        b.textContent = 'Building…';
-        hooks.linkFillSTL(data)
-          .then((blob) => download(blob, `${slug(data.name)}-filled.stl`))
-          .catch((x) => alert(`Could not build the filled link. ${x.message}`))
-          .finally(() => { b.disabled = false; b.textContent = 'Export filled STL'; });
+      case 'export-link-step': {
+        let name = data.name;
+        ui.runExport({
+          heading: 'Export link STEP', showNote: false,
+          wait: 'Building the part as a solid. The first export loads the CAD kernel (about 50 MB).',
+          job: async (onProgress) => { const r = await exportLinkSTEP(data, onProgress); name = r.name; return r; },
+          file: () => `${slug(name)}.step`,
+          summary: (r) => `${r.name}, one solid (inches, Y-up)`,
+        });
         break;
       }
-      case 'export-stl':
-        download(new Blob([linkToSTL(data, ui.frames[data.id].local)], { type: 'model/stl' }), `${slug(data.name)}.stl`);
-        break;
     }
   });
 }
@@ -1307,7 +1307,7 @@ function bindFileDialog() {
   });
 }
 
-// ---------------------------------------------------------------- Export STL (whole robot)
+// ---------------------------------------------------------------- Exports (STEP, URDF, link STEP)
 
 function bindExportDialog() {
   const dlg = $('#export-dialog');
@@ -1349,11 +1349,12 @@ function bindExportDialog() {
     }
   };
 
-  $('#btn-export-stl').addEventListener('click', () => run({
-    heading: 'Export STL', showNote: true, job: exportRobotSTL,
-    wait: 'The full models are large, so this can take a little while.',
-    file: () => `${slug(state.name)}-full.stl`,
-    summary: (r) => `${r.parts} parts, ${r.triangles.toLocaleString()} triangles`,
+  ui.runExport = run;
+  $('#btn-export-step').addEventListener('click', () => run({
+    heading: 'Export STEP', showNote: true, job: exportRobotSTEP,
+    wait: 'The full models are large and every link is built as a solid, so this takes a little while. The first export loads the CAD kernel (about 50 MB).',
+    file: () => `${slug(state.name)}.step`,
+    summary: (r) => `${r.actuators} actuators and ${r.links} link parts as one STEP assembly (inches, Y-up)`,
   }));
   $('#btn-export-urdf').addEventListener('click', () => run({
     heading: 'Export URDF', showNote: false, job: exportURDF,

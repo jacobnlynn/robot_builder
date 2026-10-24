@@ -9,19 +9,20 @@
 //    pipe, sunk into the connector's solid wall, so it is physically joined rather than touching.
 //  - Then the volume the motor before the part sweeps as it turns is cut away, as is the envelope of
 //    each motor bolted to an output, and the space in front of every mating face is kept clear.
-// Booleans use manifold-3d (WASM), served from vendor/ because the preview host blocks loading
-// WebAssembly from a CDN. The CAD tab shows the parts and the link inspector exports their STL.
+// The part is first described as a plan (partPlan: pieces, cuts, connectors). This file builds it
+// as a mesh for the CAD tab with manifold-3d (WASM, served from vendor/ because the preview host
+// blocks loading WebAssembly from a CDN); stepexport.js builds the same plan as a STEP solid.
 // To remove the trial, delete the `import './linkfill.js'` line in main.js.
 import * as THREE from 'three';
 import { state, node, isCapped, emit } from './robot.js';
 import { localKinematics, forwardKinematics, rodDirection } from './kinematics.js';
-import { hooks, cadShellGeometry, CAD_UP } from './viewer.js';
+import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
 import { LINK } from './constants.js';
 
 const MANIFOLD_URL = new URL('../vendor/manifold-3d-2.5.1/manifold.js', import.meta.url).href;
-const PIPE = { radius: LINK.radius }; // same as the Model view's rods
-const PLATE = { radius: 35, thickness: 3 }; // backing plate behind each output, matching the next part's face
-const COLLAR = {
+export const PIPE = { radius: LINK.radius }; // same as the Model view's rods
+export const PLATE = { radius: 35, thickness: 3 }; // backing plate behind each output, matching the next part's face
+export const COLLAR = {
   length: 22, // mm from a connector face to where its cone meets the pipe
   sink: 1, // mm the collar sinks into each connector's solid wall (input top is ~3.6 mm, output base ~3 mm)
   fuseRadius: 30, // inside the output spigot's 31 mm solid base
@@ -44,7 +45,7 @@ const EMPTY = new THREE.BufferGeometry(); // what a link drawn as part of anothe
 
 // ---- Helpers ----
 
-/** Vertex positions of a loaded shell as [x, y, z] points, optionally moved by `m`. */
+/** Vertex positions of a loaded geometry as [x, y, z] points, optionally moved by `m`. */
 function points(geometry, m) {
   const p = geometry.attributes.position.array, out = [];
   const v = new THREE.Vector3();
@@ -56,52 +57,6 @@ function points(geometry, m) {
   return out;
 }
 
-/** A triangle-soup geometry as a Manifold (welding the duplicate vertices first). */
-function toManifold(geometry) {
-  const vertProperties = Float32Array.from(geometry.attributes.position.array);
-  const triVerts = Uint32Array.from({ length: vertProperties.length / 3 }, (_, i) => i);
-  const mesh = new wasm.Mesh({ numProp: 3, vertProperties, triVerts });
-  mesh.merge();
-  return new wasm.Manifold(mesh);
-}
-
-/** Points of a circle of radius r at height z in the frame m. */
-const circle = (r, z, m) => Array.from({ length: SEGMENTS }, (_, k) => {
-  const a = (k / SEGMENTS) * Math.PI * 2;
-  return new THREE.Vector3(r * Math.cos(a), r * Math.sin(a), z).applyMatrix4(m).toArray();
-});
-
-const ball = (c, r) => wasm.Manifold.sphere(r, SEGMENTS).translate(c.toArray());
-
-/** Straight pipe between two points with round ends: the hull of a ball at each. */
-function capsule(a, b, ra, rb = ra) {
-  const A = ball(a, ra), B = ball(b, rb);
-  const c = wasm.Manifold.hull([A, B]);
-  free(A, B);
-  return c;
-}
-
-/**
- * Square-tube pieces. `basis` is three perpendicular unit vectors; every bar and cube of one tube
- * uses the same three, so the runs meet the elbow cube face to face.
- */
-function squareCube(c, basis, r) {
-  const pts = [];
-  for (const a of [-r, r]) for (const b of [-r, r]) for (const d of [-r, r]) {
-    pts.push(c.clone().addScaledVector(basis[0], a).addScaledVector(basis[1], b).addScaledVector(basis[2], d).toArray());
-  }
-  return wasm.Manifold.hull(pts);
-}
-
-/** Square bar from a to b (side 2r); its sides lie along the two basis vectors across it. */
-function squareBar(a, b, basis, r) {
-  const along = b.clone().sub(a).normalize();
-  const [u, v] = basis.filter((e) => Math.abs(e.dot(along)) < 0.5);
-  const pts = [];
-  for (const p of [a, b]) for (const su of [-r, r]) for (const sv of [-r, r]) pts.push(p.clone().addScaledVector(u, su).addScaledVector(v, sv).toArray());
-  return wasm.Manifold.hull(pts);
-}
-
 /** Three perpendicular unit vectors for a tube that runs along d1, then (optionally) d2 ⊥ d1. */
 function tubeBasis(d1, d2) {
   let n = d2 ? new THREE.Vector3().crossVectors(d1, d2) : null;
@@ -110,16 +65,15 @@ function tubeBasis(d1, d2) {
   return [d1.clone().normalize(), new THREE.Vector3().crossVectors(n, d1).normalize(), n];
 }
 
-/** Every point of an actuator's shells (motor, built-in gearbox, extra stages) in its input frame. */
+/** Every point of an actuator's modules (motor, built-in gearbox, extra stages) in its input frame. */
 function actuatorPoints(n) {
   const kin = localKinematics(n);
-  const shells = cadShellGeometry();
-  const pts = [...points(shells.motor, kin.mount), ...points(shells.firstGearbox, kin.mount)];
-  for (const s of kin.segments.slice(2)) pts.push(...points(shells.gearbox, s.start));
+  const [, ...extra] = kin.segments;
+  const [motorKey, ...stageKeys] = actuatorCadKeys(n);
+  const pts = points(cadGeometry(motorKey).whole, kin.mount);
+  extra.slice(1).forEach((s, i) => pts.push(...points(cadGeometry(stageKeys[i]), s.start)));
   return { pts, kin };
 }
-
-const free = (...ms) => ms.forEach((m) => m?.delete());
 
 // ---- Parts: runs of links with no motor between them ----
 
@@ -153,6 +107,15 @@ function describePart(root) {
   return { root, links, outputs, shape: hooks.tubeShape };
 }
 
+/** Module files a part's solid needs: the connectors and the motors on either side of it. */
+function partCadKeys(part) {
+  const keys = new Set(['input', 'output']);
+  const parent = node(part.root.parent.nodeId);
+  if (parent.type === 'actuator') actuatorCadKeys(parent).forEach((k) => keys.add(k));
+  for (const o of part.outputs) if (o.child?.type === 'actuator') actuatorCadKeys(o.child).forEach((k) => keys.add(k));
+  return [...keys];
+}
+
 /** What a part's solid depends on: its outputs, and the motors on either side of it. */
 function signature(part) {
   const parent = node(part.root.parent.nodeId);
@@ -160,29 +123,35 @@ function signature(part) {
   return JSON.stringify({
     shape: part.shape,
     outputs: part.outputs.map((o) => [o.m.elements.map(r3), o.sphere, o.dir.toArray().map(r3),
-      o.child?.type === 'actuator' ? [o.child.motor, o.child.gearboxes.length, o.child.mount] : null]),
-    parent: parent.type === 'actuator' ? [parent.motor, parent.gearboxes.length] : null,
+      o.child?.type === 'actuator' ? [o.child.motor, o.child.gearboxes, o.child.mount] : null]),
+    parent: parent.type === 'actuator' ? [parent.motor, parent.gearboxes] : null,
   });
 }
 
-// ---- The solid ----
+// ---- The plan: what the solid is made of, independent of any geometry library ----
 
-function build(part) {
-  const { Manifold } = wasm;
-  const shells = cadShellGeometry();
+/**
+ * Pieces (joined together), cuts (taken away from them) and connectors (joined on last), all in
+ * the part's input frame (mm, Z-up):
+ *   capsule {a, b, r}, bar {a, b, basis, r}, cube {c, basis, r}, ball {c, r},
+ *   disc {frame, r, z0, z1} (a cylinder along frame z), collar {frame, r, z0, z1, tip} (that disc
+ *   tapering to a tip: a ball or a cube), hull {pts, frame} (convex hull of points), and the
+ *   connectors input {m}, output {m}, sphere {c, r}.
+ */
+export function partPlan(part) {
   const R = PIPE.radius;
-  if (!shells.input.boundingBox) shells.input.computeBoundingBox();
-  const top = shells.input.boundingBox.max.z;
+  const input = cadGeometry('input');
+  if (!input.boundingBox) input.computeBoundingBox();
+  const top = input.boundingBox.max.z;
   // Centre and size of the input's back face (its top).
-  const back = points(shells.input).filter((p) => p[2] > top - 0.3);
+  const back = points(input).filter((p) => p[2] > top - 0.3);
   const backBox = new THREE.Box3().setFromArray(back.flat());
   const faceRadius = Math.min(backBox.max.x - backBox.min.x, backBox.max.y - backBox.min.y) / 2;
   const centre = backBox.getCenter(new THREE.Vector3());
-  const I = new THREE.Matrix4();
   const atInput = new THREE.Matrix4().makeTranslation(centre.x, centre.y, top);
 
   const square = part.shape === 'square';
-  const pieces = [];
+  const pieces = [], cuts = [], connectors = [{ t: 'input', m: new THREE.Matrix4() }];
   const start = new THREE.Vector3(centre.x, centre.y, top + COLLAR.length);
   for (const o of part.outputs) {
     const at = new THREE.Vector3().setFromMatrixPosition(o.m);
@@ -197,20 +166,16 @@ function build(part) {
       ? tubeBasis(o.dir, runs ? end.clone().sub(bend).normalize() : null)
       : tubeBasis(end.clone().sub(start).normalize());
     // The end of the tube at a point: a ball (round) or a cube squared to the tube (square).
-    const tip = (c) => (square ? squareCube(c, basis, R) : ball(c, R));
-    const run = (a, b) => (square ? squareBar(a, b, basis, R) : capsule(a, b, R));
+    const tip = (c) => (square ? { t: 'cube', c, basis, r: R } : { t: 'ball', c, r: R });
+    const run = (a, b) => (square ? { t: 'bar', a, b, basis, r: R } : { t: 'capsule', a, b, r: R });
 
     // Input collar: a cone from the whole back face (sunk into the connector's solid top) to the tube.
-    const startTip = tip(start);
-    pieces.push(Manifold.hull([...circle(faceRadius, -COLLAR.sink, atInput), ...circle(faceRadius, PLATE.thickness, atInput), startTip]));
-    free(startTip);
+    pieces.push({ t: 'collar', frame: atInput, r: faceRadius, z0: -COLLAR.sink, z1: PLATE.thickness, tip: tip(start) });
     if (!o.sphere) {
       // Output collar: the backing plate, a cone from it back to the tube, and a short plug into
       // the spigot's solid base so the plate is fused to it, not just touching.
-      const endTip = tip(end);
-      pieces.push(Manifold.hull([...circle(PLATE.radius, 0, o.m), ...circle(PLATE.radius, -PLATE.thickness, o.m), endTip]));
-      pieces.push(Manifold.hull([...circle(COLLAR.fuseRadius, -1, o.m), ...circle(COLLAR.fuseRadius, COLLAR.sink, o.m)]));
-      free(endTip);
+      pieces.push({ t: 'collar', frame: o.m, r: PLATE.radius, z0: -PLATE.thickness, z1: 0, tip: tip(end) });
+      pieces.push({ t: 'disc', frame: o.m, r: COLLAR.fuseRadius, z0: -1, z1: COLLAR.sink });
     }
     // Constant size all the way, into the sphere too. Square tubes get a cube at each corner.
     if (rises) pieces.push(run(start, bend));
@@ -221,12 +186,11 @@ function build(part) {
       // Into a sphere the bar alone is enough (its corners stay inside); a cube's would poke out.
       if (!o.sphere) pieces.push(tip(end));
     }
+    connectors.push(o.sphere ? { t: 'sphere', c: at, r: o.sphere } : { t: 'output', m: o.m });
   }
-  let body = Manifold.union(pieces);
-  free(...pieces);
 
   // Keep-outs.
-  const cuts = [];
+  const I = new THREE.Matrix4();
   const parent = node(part.root.parent.nodeId);
   if (parent.type === 'actuator') {
     // The motor before turns about its output axis (this part's z), so cut its whole swept volume:
@@ -241,30 +205,98 @@ function build(part) {
       reach.set(bin, Math.max(reach.get(bin) ?? 0, Math.hypot(v.x, v.y)));
     }
     for (const [bin, r] of reach) {
-      cuts.push(Manifold.cylinder(SWEEP_BIN + 0.02, r + SWEEP_CLEARANCE, r + SWEEP_CLEARANCE, SEGMENTS).translate([0, 0, bin * SWEEP_BIN - 0.01]));
+      cuts.push({ t: 'disc', frame: I, r: r + SWEEP_CLEARANCE, z0: bin * SWEEP_BIN - 0.01, z1: (bin + 1) * SWEEP_BIN + 0.01 });
     }
   } else {
-    cuts.push(Manifold.cylinder(FACE_CLEARANCE.depth, FACE_CLEARANCE.radius, FACE_CLEARANCE.radius, SEGMENTS).translate([0, 0, -FACE_CLEARANCE.depth]));
+    cuts.push({ t: 'disc', frame: I, r: FACE_CLEARANCE.radius, z0: -FACE_CLEARANCE.depth, z1: 0 });
   }
   for (const o of part.outputs) {
     if (o.sphere) continue;
-    cuts.push(Manifold.cylinder(FACE_CLEARANCE.depth, FACE_CLEARANCE.radius, FACE_CLEARANCE.radius, SEGMENTS).translate([0, 0, COLLAR.sink]).transform(o.m.elements));
+    cuts.push({ t: 'disc', frame: o.m, r: FACE_CLEARANCE.radius, z0: COLLAR.sink, z1: COLLAR.sink + FACE_CLEARANCE.depth });
     // A motor bolted on never moves relative to the part: cut its envelope where it sits.
     // (Lifted by the collar's sink: below that is the plug inside this part's own spigot.)
-    if (o.child?.type === 'actuator') cuts.push(Manifold.hull(actuatorPoints(o.child).pts).translate([0, 0, COLLAR.sink]).transform(o.m.elements));
+    if (o.child?.type === 'actuator') {
+      cuts.push({ t: 'hull', pts: actuatorPoints(o.child).pts, frame: o.m.clone().multiply(new THREE.Matrix4().makeTranslation(0, 0, COLLAR.sink)) });
+    }
   }
-  if (cuts.length) {
+  return { pieces, cuts, connectors };
+}
+
+// ---- The plan as a mesh (manifold-3d), for the CAD tab ----
+
+/** A triangle-soup geometry as a Manifold (welding the duplicate vertices first). */
+function toManifold(geometry) {
+  const vertProperties = Float32Array.from(geometry.attributes.position.array);
+  const triVerts = Uint32Array.from({ length: vertProperties.length / 3 }, (_, i) => i);
+  const mesh = new wasm.Mesh({ numProp: 3, vertProperties, triVerts });
+  mesh.merge();
+  return new wasm.Manifold(mesh);
+}
+
+/** Points of a circle of radius r at height z in the frame m. */
+const circle = (r, z, m) => Array.from({ length: SEGMENTS }, (_, k) => {
+  const a = (k / SEGMENTS) * Math.PI * 2;
+  return new THREE.Vector3(r * Math.cos(a), r * Math.sin(a), z).applyMatrix4(m).toArray();
+});
+
+const free = (...ms) => ms.forEach((m) => m?.delete());
+
+function cubePoints(c, basis, r) {
+  const pts = [];
+  for (const a of [-r, r]) for (const b of [-r, r]) for (const d of [-r, r]) {
+    pts.push(c.clone().addScaledVector(basis[0], a).addScaledVector(basis[1], b).addScaledVector(basis[2], d).toArray());
+  }
+  return pts;
+}
+
+function toMesh(p) {
+  const { Manifold } = wasm;
+  const ball = (c, r) => Manifold.sphere(r, SEGMENTS).translate(c.toArray());
+  switch (p.t) {
+    case 'ball': return ball(p.c, p.r);
+    case 'cube': return Manifold.hull(cubePoints(p.c, p.basis, p.r));
+    case 'capsule': {
+      const A = ball(p.a, p.r), B = ball(p.b, p.r);
+      const c = Manifold.hull([A, B]);
+      free(A, B);
+      return c;
+    }
+    case 'bar': {
+      const along = p.b.clone().sub(p.a).normalize();
+      const [u, v] = p.basis.filter((e) => Math.abs(e.dot(along)) < 0.5);
+      const pts = [];
+      for (const q of [p.a, p.b]) for (const su of [-p.r, p.r]) for (const sv of [-p.r, p.r]) pts.push(q.clone().addScaledVector(u, su).addScaledVector(v, sv).toArray());
+      return Manifold.hull(pts);
+    }
+    case 'disc': return Manifold.cylinder(p.z1 - p.z0, p.r, p.r, SEGMENTS).translate([0, 0, p.z0]).transform(p.frame.elements);
+    case 'collar': {
+      const tip = toMesh(p.tip);
+      const c = Manifold.hull([...circle(p.r, p.z0, p.frame), ...circle(p.r, p.z1, p.frame), tip]);
+      free(tip);
+      return c;
+    }
+    case 'hull': return Manifold.hull(p.pts).transform(p.frame.elements);
+    case 'input': return toManifold(cadGeometry('input')).transform(p.m.elements);
+    case 'output': return toManifold(cadGeometry('output')).transform(p.m.elements);
+    case 'sphere': return ball(p.c, p.r);
+    default: throw new Error(`Unknown piece ${p.t}`);
+  }
+}
+
+function build(part) {
+  const { Manifold } = wasm;
+  const plan = partPlan(part);
+  const pieces = plan.pieces.map(toMesh);
+  let body = Manifold.union(pieces);
+  free(...pieces);
+  if (plan.cuts.length) {
+    const cuts = plan.cuts.map(toMesh);
     const cut = Manifold.union(cuts);
     const trimmed = body.subtract(cut);
     free(body, cut, ...cuts);
     body = trimmed;
   }
-
-  // Join the connectors on.
-  const parts = [body, toManifold(shells.input).transform(I.elements)];
-  for (const o of part.outputs) {
-    parts.push(o.sphere ? Manifold.sphere(o.sphere, SEGMENTS).transform(o.m.elements) : toManifold(shells.output).transform(o.m.elements));
-  }
+  const parts = [body, ...plan.connectors.map(toMesh)];
   const solid = Manifold.union(parts);
   free(...parts);
 
@@ -278,7 +310,7 @@ function build(part) {
   return { geometry, triangles: tri };
 }
 
-// ---- Hooks for the viewer and inspector ----
+// ---- Hooks for the viewer, the inspector and the exports ----
 
 /** Tube cross-section for every part: 'round' or 'square'. */
 hooks.tubeShape = 'round';
@@ -293,9 +325,11 @@ hooks.setTubeShape = (shape) => {
  * link before it, or null while the part is being built (the viewer redraws when it is ready).
  */
 hooks.linkFill = (n) => {
-  if (!isLink(n) || !cadShellGeometry()) return null;
+  if (!isLink(n)) return null;
   const root = partRoot(n);
   const part = describePart(root);
+  // Wait for the module files it needs; they redraw the page when they arrive.
+  if (!partCadKeys(part).every((k) => cadGeometry(k))) return null;
   const sig = signature(part);
   const hit = cache.get(sig);
   if (hit && typeof hit === 'object') return root === n ? hit.geometry : EMPTY;
@@ -320,32 +354,20 @@ hooks.linkPart = (n) => (isLink(n) ? describePart(partRoot(n)).links.map((x) => 
 /** Is this link the first of its part (the one that draws and exports the whole part)? */
 hooks.isPartRoot = (n) => isLink(n) && partRoot(n) === n;
 
+/** The part a link belongs to, once the module files it needs have loaded: { root, links, plan, sig }. */
+hooks.linkPartPlan = async (n) => {
+  const part = describePart(partRoot(n));
+  if (!(await whenCadReady(partCadKeys(part)))) throw new Error('Some module STEP files could not be loaded.');
+  return { root: part.root, links: part.links, plan: partPlan(part), sig: signature(part) };
+};
+
 /** Triangles (9 floats each, mm, Z-up) of the part a link belongs to, in that part's input frame. */
 hooks.linkFillTriangles = async (n) => {
-  if (!cadShellGeometry()) throw new Error('The connector files have not loaded.');
-  await loadManifold();
   const part = describePart(partRoot(n));
+  if (!(await whenCadReady(partCadKeys(part)))) throw new Error('Some module STEP files could not be loaded.');
+  await loadManifold();
   const sig = signature(part);
   let hit = cache.get(sig);
   if (!hit || typeof hit !== 'object') { hit = build(part); cache.set(sig, hit); }
   return hit.triangles;
-};
-
-/** Binary STL of the part a link belongs to (mm), turned back to the CAD files' up axis. */
-hooks.linkFillSTL = async (n) => {
-  const hit = { triangles: await hooks.linkFillTriangles(n) };
-  const back = CAD_UP === 'y' ? new THREE.Matrix4().makeRotationX(-Math.PI / 2) : new THREE.Matrix4();
-  const t = hit.triangles, count = t.length / 9;
-  const buf = new ArrayBuffer(84 + count * 50), dv = new DataView(buf);
-  dv.setUint32(80, count, true);
-  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), nrm = new THREE.Vector3();
-  for (let k = 0; k < count; k++) {
-    a.fromArray(t, k * 9).applyMatrix4(back);
-    b.fromArray(t, k * 9 + 3).applyMatrix4(back);
-    c.fromArray(t, k * 9 + 6).applyMatrix4(back);
-    nrm.subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize();
-    let o = 84 + k * 50;
-    for (const v of [nrm, a, b, c]) { dv.setFloat32(o, v.x, true); dv.setFloat32(o + 4, v.y, true); dv.setFloat32(o + 8, v.z, true); o += 12; }
-  }
-  return new Blob([buf], { type: 'model/stl' });
 };

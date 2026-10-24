@@ -1,4 +1,5 @@
-// Export URDF: a .zip with robot.urdf and meshes/ (binary STL, mm, scaled to metres in the URDF).
+// Export URDF: a .zip with robot.urdf and meshes/ (OBJ, mm, scaled to metres in the URDF; MuJoCo,
+// ROS/RViz, Gazebo and PyBullet all read OBJ).
 // Rigid bodies (URDF links) are what moves together: the base body holds everything up to the
 // first joints, and each actuator starts a new body at its output. A body carries the motor
 // shells mounted on it (CAD-tab shells, not the full models) and the filled link parts it holds.
@@ -7,13 +8,13 @@
 // effort is the motor's torque times the joint's total gear ratio.
 // Inertial data assumes everything is one uniform density (DENSITY): each actuator module uses
 // the volume, centre of mass and inertia of its full model (MODULES, measured from
-// models/<family>_gearbox*.stl), each link part is measured from its own solid, and a body's
+// models/<family>_gearbox.step and _extension.step), each link part is measured from its own solid, and a body's
 // values combine everything it carries.
 import * as THREE from 'three';
 import { state, node } from './robot.js';
 import { FAMILY_COLORS, JOINT_LIMIT } from './constants.js';
 import { forwardKinematics, stackRatio } from './kinematics.js';
-import { hooks, cadShellGeometry } from './viewer.js';
+import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
 import { jointSpeed } from './simulate.js';
 
 
@@ -31,21 +32,20 @@ function origin(m) {
   return `<origin xyz="${fmt(p.x)} ${fmt(p.y)} ${fmt(p.z)}" rpy="${fmt(e.x)} ${fmt(e.y)} ${fmt(e.z)}"/>`;
 }
 
-/** Binary STL bytes from triangle positions (9 floats each). */
-function stl(tri) {
-  const count = tri.length / 9;
-  const buf = new ArrayBuffer(84 + count * 50), dv = new DataView(buf);
-  dv.setUint32(80, count, true);
-  for (let t = 0; t < count; t++) {
-    const o = 84 + t * 50, b = t * 9;
-    const ux = tri[b + 3] - tri[b], uy = tri[b + 4] - tri[b + 1], uz = tri[b + 5] - tri[b + 2];
-    const wx = tri[b + 6] - tri[b], wy = tri[b + 7] - tri[b + 1], wz = tri[b + 8] - tri[b + 2];
-    let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
-    const l = Math.hypot(nx, ny, nz) || 1;
-    dv.setFloat32(o, nx / l, true); dv.setFloat32(o + 4, ny / l, true); dv.setFloat32(o + 8, nz / l, true);
-    for (let k = 0; k < 9; k++) dv.setFloat32(o + 12 + k * 4, tri[b + k], true);
+/** OBJ text from triangle positions (9 floats each), with coincident vertices merged. */
+function obj(tri) {
+  const index = new Map(), verts = [], faces = [];
+  const id = (k) => {
+    const key = `${tri[k].toFixed(3)} ${tri[k + 1].toFixed(3)} ${tri[k + 2].toFixed(3)}`;
+    let i = index.get(key);
+    if (i === undefined) { i = verts.length + 1; index.set(key, i); verts.push(`v ${key}`); }
+    return i;
+  };
+  for (let t = 0; t < tri.length; t += 9) {
+    const a = id(t), b = id(t + 3), c = id(t + 6);
+    if (a !== b && b !== c && a !== c) faces.push(`f ${a} ${b} ${c}`);
   }
-  return new Uint8Array(buf);
+  return new TextEncoder().encode(['# Modular Robot Builder mesh (mm)', ...verts, ...faces, ''].join('\n'));
 }
 
 // Minimal .zip writer (files stored uncompressed).
@@ -89,7 +89,7 @@ const DENSITY = 1.24e-6; // kg/mm³ (1.24 g/cm³, printed PLA), assumed uniform 
 
 // Full-model mass properties per unit density, in each module's own Z-up frame (mm):
 // volume (mm³), centre of mass (mm) and inertia about it (mm⁵: ixx, iyy, izz, ixy, ixz, iyz).
-// motor: motor + built-in gearbox, placed like motor.stl; extension: one stage, like gearbox.stl.
+// motor: motor + built-in gearbox (<family>_gearbox.step); extension: one stage (<family>_extension.step).
 const MODULES = {
   planetary: {
     motor: { volume: 243812, com: [7.95, -0.22, 47.61], inertia: [2.2242e+08, 2.6452e+08, 2.1941e+08, -2.5799e+05, -1.8499e+07, -4.4105e+05] },
@@ -171,8 +171,9 @@ function inertial(p) {
  * Returns { blob, links, joints }.
  */
 export async function exportURDF(onProgress = () => {}) {
-  const shells = cadShellGeometry();
-  if (!shells) throw new Error('The CAD shell files have not loaded yet.');
+  const keys = [...new Set(Object.values(state.robot.nodes).filter((n) => n.type === 'actuator').flatMap(actuatorCadKeys))];
+  onProgress({ step: 'Loading the module STEP files', done: 0, total: 1 });
+  if (!(await whenCadReady(keys))) throw new Error('Some module STEP files could not be loaded.');
   if (!hooks.linkFillTriangles) throw new Error('Filled links are not available, so links cannot be exported.');
 
   // Home pose: every joint at 0°, as URDF expects.
@@ -215,7 +216,7 @@ export async function exportURDF(onProgress = () => {}) {
   const files = [];
   const meshes = new Map(); // mesh key → file name, written once
   const addMesh = (key, tri) => {
-    if (!meshes.has(key)) { meshes.set(key, `meshes/${key}.stl`); files.push({ name: `meshes/${key}.stl`, data: stl(tri) }); }
+    if (!meshes.has(key)) { meshes.set(key, `meshes/${key}.obj`); files.push({ name: `meshes/${key}.obj`, data: obj(tri) }); }
     return meshes.get(key);
   };
   const triOf = (g) => (g.index ? g.toNonIndexed() : g).attributes.position.array;
@@ -230,9 +231,10 @@ export async function exportURDF(onProgress = () => {}) {
     if (n.type === 'actuator') {
       const [, first, ...extra] = f.local.segments;
       const at = (m) => toBody.clone().multiply(f.input).multiply(m);
-      visuals.get(body).push({ mesh: addMesh('motor', triOf(shells.motor)), matrix: at(f.local.mount), color: FAMILY_COLORS.motor, label: `${n.name} motor` });
-      visuals.get(body).push({ mesh: addMesh('motor_gearbox', triOf(shells.firstGearbox)), matrix: at(f.local.mount), color: FAMILY_COLORS[first.family], label: `${n.name} ${first.family} gearbox` });
-      extra.forEach((s, k) => visuals.get(body).push({ mesh: addMesh('gearbox', triOf(shells.gearbox)), matrix: at(s.start), color: FAMILY_COLORS[s.family], label: `${n.name} ${s.family} extension ${k + 1}` }));
+      const motor = cadGeometry(`motor:${first.family}`);
+      visuals.get(body).push({ mesh: addMesh(`motor_${first.family}`, triOf(motor.motor)), matrix: at(f.local.mount), color: FAMILY_COLORS.motor, label: `${n.name} motor` });
+      visuals.get(body).push({ mesh: addMesh(`motor_${first.family}_gearbox`, triOf(motor.firstGearbox)), matrix: at(f.local.mount), color: FAMILY_COLORS[first.family], label: `${n.name} ${first.family} gearbox` });
+      extra.forEach((s, k) => visuals.get(body).push({ mesh: addMesh(`extension_${s.family}`, triOf(cadGeometry(`extension:${s.family}`))), matrix: at(s.start), color: FAMILY_COLORS[s.family], label: `${n.name} ${s.family} extension ${k + 1}` }));
       masses.get(body).push(moved(props(MODULES[first.family].motor), at(f.local.mount)));
       extra.forEach((s) => masses.get(body).push(moved(props(MODULES[s.family].extension), at(s.start))));
     } else if (hooks.isPartRoot?.(n)) {
