@@ -172,8 +172,8 @@ function inertial(p) {
  */
 export async function exportURDF(onProgress = () => {}) {
   const keys = [...new Set(Object.values(state.robot.nodes).filter((n) => n.type === 'actuator').flatMap(actuatorCadKeys))];
-  onProgress({ step: 'Loading the module STEP files', done: 0, total: 1 });
-  if (!(await whenCadReady(keys))) throw new Error('Some module STEP files could not be loaded.');
+  onProgress({ step: 'Loading the module models', done: 0, total: 1 });
+  if (!(await whenCadReady(keys))) throw new Error('Some module models could not be loaded.');
   if (!hooks.linkFillTriangles) throw new Error('Filled links are not available, so links cannot be exported.');
 
   // Home pose: every joint at 0°, as URDF expects.

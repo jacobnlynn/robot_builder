@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { loadStepMesh } from './stepmesh.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES } from './constants.js';
 import { isCapped } from './robot.js';
 
@@ -113,25 +113,47 @@ export function buildCadPart(node, kin, selected = false) {
   return g;
 }
 
-// ---- CAD tab: the designed modules, from their STEP files ----
+// ---- CAD tab: the designed modules, from their simplified STL shells ----
 
 /**
- * One STEP file per module, read on demand and shared by every part that uses it:
- *  - motor:<family>: the full motor with its built-in first gearbox of that type. Origin at the
+ * One STL shell per module (plus a full STEP file per type for downloads), read on demand and shared by every part that uses it:
+ *  - motor:<family>: the motor with its built-in first gearbox, coloured as that type. Origin at the
  *    centre of the mounting (input) face, input axis up, output shaft pointing along +x.
- *  - extension:<family>: one add-on stage of that type. Origin at the centre of its input face,
+ *  - extension:<family>: one add-on stage, coloured as that type. Origin at the centre of its input face,
  *    shaft pointing up.
  *  - input / output: the connectors a link starts and ends with. Origin at the centre of the
  *    mating face, pointing up (away from the part it mates with for the input, outward for the output).
  * Fusion 360 exports Y-up, so with CAD_UP = 'y' each file is turned +90° about x (its +y becomes +z).
  * Until a file has loaded, a placeholder is drawn. Every module is drawn in its family colour.
  */
+// Drawn from the simplified STL shells (small and quick to read; every gearbox type shares one
+// shape, coloured by family). Downloads use the full STEP files, which share the same frames.
 export const CAD_FILES = {
+  motor: () => 'models/motor.stl',
+  extension: () => 'models/gearbox.stl',
+  input: 'models/input.stl',
+  output: 'models/output.stl',
+};
+export const STEP_FILES = {
   motor: (family) => `models/${family}_gearbox.step`,
   extension: (family) => `models/${family}_extension.step`,
   input: 'models/input.step',
   output: 'models/output.step',
 };
+
+const stlLoader = new STLLoader();
+const stlBytes = new Map(); // url → Promise<ArrayBuffer>, so families sharing a file fetch it once
+async function loadSTL(url) {
+  if (!stlBytes.has(url)) {
+    stlBytes.set(url, fetch(url).then((res) => {
+      if (!res.ok) throw new Error(`Could not load ${url} (${res.status}).`);
+      return res.arrayBuffer();
+    }));
+  }
+  const g = stlLoader.parse(await stlBytes.get(url));
+  g.deleteAttribute('normal');
+  return g;
+}
 export const CAD_UP = 'y'; // 'y' for Fusion 360's default; 'z' for files already exported Z-up
 // The motor file's built-in gearbox: everything in front of this plane (mm along the output axis,
 // from the input axis) and above the input boss.
@@ -178,7 +200,7 @@ export function loadCad(key) {
   let entry = cad.get(key);
   if (entry) return entry.promise;
   entry = { status: 'loading', geometry: null };
-  entry.promise = loadStepMesh(urlFor(key)).then((raw) => {
+  entry.promise = loadSTL(urlFor(key)).then((raw) => {
     const g = finish(raw);
     if (key.startsWith('motor:')) {
       // Colour the built-in gearbox like its type: split it off the motor by position.

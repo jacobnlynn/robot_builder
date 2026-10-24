@@ -12,7 +12,7 @@
 import * as THREE from 'three';
 import { state } from './robot.js';
 import { forwardKinematics } from './kinematics.js';
-import { hooks, CAD_FILES, CAD_UP, actuatorCadKeys } from './viewer.js';
+import { hooks, STEP_FILES, CAD_UP, actuatorCadKeys } from './viewer.js';
 
 const OCC = 'https://cdn.jsdelivr.net/npm/opencascade.js@2.0.0-beta.b5ff984/dist/';
 const MM_PER_IN = 25.4;
@@ -60,7 +60,7 @@ function occHelpers(oc) {
 const connectorShapes = new Map();
 async function connectorShape(oc, key) {
   if (!connectorShapes.has(key)) {
-    const text = await (await fetch(CAD_FILES[key])).text();
+    const text = await (await fetch(STEP_FILES[key])).text();
     oc.FS.writeFile(`/${key}.step`, text);
     const r = new oc.STEPControl_Reader_1();
     r.ReadFile(`/${key}.step`);
@@ -385,7 +385,7 @@ export async function exportRobotSTEP(onProgress = () => {}) {
   const modules = new Map();
   for (const key of moduleKeys) {
     const [k, family] = key.split(':');
-    const url = CAD_FILES[k](family);
+    const url = STEP_FILES[k](family);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Could not load ${url} (${res.status}).`);
     modules.set(key, w.include(await res.text(), MODULE_NAME[k](family)));
