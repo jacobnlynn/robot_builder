@@ -287,8 +287,8 @@ class StepWriter {
     const body = this.lines.sort((a, b) => a[0] - b[0]).map(([id, b]) => `#${id}=${b};`).join('\n');
     return `ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('Modular Robot Builder assembly'),'2;1');
-FILE_NAME(${q(fileName)},${q(new Date().toISOString())},(''),(''),'Modular Robot Builder','Modular Robot Builder','');
+FILE_DESCRIPTION(('Reconfigurable Robot Builder assembly'),'2;1');
+FILE_NAME(${q(fileName)},${q(new Date().toISOString())},(''),(''),'Reconfigurable Robot Builder','Reconfigurable Robot Builder','');
 FILE_SCHEMA(('AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }'));
 ENDSEC;
 DATA;

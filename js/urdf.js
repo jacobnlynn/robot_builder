@@ -45,7 +45,7 @@ function obj(tri) {
     const a = id(t), b = id(t + 3), c = id(t + 6);
     if (a !== b && b !== c && a !== c) faces.push(`f ${a} ${b} ${c}`);
   }
-  return new TextEncoder().encode(['# Modular Robot Builder mesh (mm)', ...verts, ...faces, ''].join('\n'));
+  return new TextEncoder().encode(['# Reconfigurable Robot Builder mesh (mm)', ...verts, ...faces, ''].join('\n'));
 }
 
 // Minimal .zip writer (files stored uncompressed).
@@ -251,7 +251,7 @@ export async function exportURDF(onProgress = () => {}) {
   const material = (c) => `mat_${c.toString(16).padStart(6, '0')}`;
   const lines = [
     '<?xml version="1.0"?>',
-    `<!-- ${esc(state.name || 'robot')}: exported from the Modular Robot Builder. Meshes are in mm (scale 0.001).`,
+    `<!-- ${esc(state.name || 'robot')}: exported from the Reconfigurable Robot Builder. Meshes are in mm (scale 0.001).`,
     `     Joint effort = ${MOTOR_TORQUE} N·m motor torque × gear ratio. Inertial data assumes a uniform ${fmt(DENSITY * 1e6)} g/cm³. -->`,
     `<robot name="${esc(nameFor(state.name || 'robot'))}">`,
     ...colours.map((c) => `  <material name="${material(c)}"><color rgba="${rgba(c)}"/></material>`),

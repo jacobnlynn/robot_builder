@@ -1,4 +1,4 @@
-# Modular Robot Builder
+# Reconfigurable Robot Builder
 
 Browser tool for assembling a robot from modular actuators (motor + gearbox stack) and links, defined by D-H parameters.
 

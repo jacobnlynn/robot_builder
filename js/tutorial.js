@@ -65,7 +65,7 @@ const STEPS = [
   {
     title: 'Welcome',
     target: null,
-    text: `<p>This is the Modular Robot Builder. You build a robot from two kinds of parts:
+    text: `<p>This is the Reconfigurable Robot Builder. You build a robot from two kinds of parts:
       actuators (a motor with a stack of gearboxes) and links (the rigid pieces between them).</p>
       <p>We've loaded the Robot Dog example. Click Next for a quick tour, or Skip to start building.</p>`,
     setup: (ctx) => { exampleDog(ctx); store.setView('cad'); },
