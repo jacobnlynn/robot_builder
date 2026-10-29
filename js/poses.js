@@ -1,4 +1,4 @@
-// Saved poses: a named set of joint angles, listed under the joint sliders. Clicking one moves
+// Saved poses: a named set of joint angles, listed above the Assembly list (whose actuator rows hold the joint sliders). Clicking one moves
 // every joint there together, each no faster than its speed limit; Save pose stores the current
 // angles. Poses are saved in the robot's JSON file as `poses: [{ name, q: { actuatorId: deg } }]`.
 import * as store from './robot.js';
@@ -40,7 +40,10 @@ export function initPoses(viewer) {
       : '';
     host.innerHTML = `
       <div class="poses-head"><span class="label">Poses</span>
-        ${naming ? '' : '<button type="button" class="btn btn-ghost btn-small" data-pose-save title="Save the current joint angles as a pose">Save pose</button>'}
+        <span class="poses-tools">
+          <button type="button" class="btn btn-ghost btn-small" data-pose-zero title="Put every joint back to 0°">Zero all</button>
+          ${naming ? '' : '<button type="button" class="btn btn-ghost btn-small" data-pose-save title="Save the current joint angles as a pose">Save pose</button>'}
+        </span>
       </div>${form}${list}`;
     if (naming) { const input = $('#pose-name'); input.focus(); input.select(); }
   }
@@ -72,6 +75,7 @@ export function initPoses(viewer) {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.pose != null) goTo(state.poses[t.dataset.pose]);
+    else if ('poseZero' in t.dataset) goTo({ q: Object.fromEntries(actuators().map((n) => [n.id, 0])) });
     else if (t.dataset.poseDel != null) store.deletePose(Number(t.dataset.poseDel));
     else if ('poseSave' in t.dataset) { naming = true; render(); }
     else if ('poseCancel' in t.dataset) { naming = false; render(); }

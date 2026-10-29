@@ -25,18 +25,29 @@
     <span class="brand-sep" aria-hidden="true">/</span>
     <input id="project-name" class="project-name" type="text" aria-label="Project name" autocomplete="off">
   </div>
+  <!-- Two menus: File (new, open, save, export) and ? (tutorial, style). js/menus.js opens and closes them. -->
   <div class="top-actions">
-    <div class="style-menu">
-      <button type="button" class="btn" id="btn-style" aria-haspopup="menu" aria-expanded="false" aria-controls="style-list" title="Change the look of the site">Style: Retro</button>
-      <div class="style-list" id="style-list" role="menu" aria-label="Style" hidden></div>
+    <div class="style-menu menu">
+      <button type="button" class="btn" id="btn-menu-file" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File</button>
+      <div class="style-list menu-list" id="menu-file" role="menu" aria-label="File" hidden>
+        <button type="button" class="style-option" role="menuitem" id="btn-new"><span class="style-name">New&hellip;</span><span class="style-note">Start from an example or a blank robot</span></button>
+        <button type="button" class="style-option" role="menuitem" id="btn-import"><span class="style-name">Open JSON&hellip;</span><span class="style-note">Load a project from a .json file</span></button>
+        <button type="button" class="style-option" role="menuitem" id="btn-file"><span class="style-name">Save JSON&hellip;</span><span class="style-note">Copy or download this robot as JSON</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="style-option" role="menuitem" id="btn-export-step"><span class="style-name">Export STEP&hellip;</span><span class="style-note">The whole robot as one CAD assembly</span></button>
+        <button type="button" class="style-option" role="menuitem" id="btn-export-urdf"><span class="style-name">Export URDF&hellip;</span><span class="style-note">robot.urdf + meshes, for simulators</span></button>
+      </div>
     </div>
-    <button type="button" class="btn" id="btn-tour" title="Take the guided tour of the site">Tutorial</button>
-    <button type="button" class="btn" id="btn-import" title="Load a project from a .json file">Import JSON</button>
-    <button type="button" class="btn" id="btn-export-step" title="Download the whole robot as one STEP assembly: every motor module with its interior parts, and every link as a solid">Export STEP</button>
-    <button type="button" class="btn" id="btn-export-urdf" title="Download a URDF (robot.urdf + meshes) built from the CAD shells">Export URDF</button>
     <input type="file" id="import-input" accept=".json,application/json" hidden>
-    <button type="button" class="btn" id="btn-file">Export JSON</button>
-    <button type="button" class="btn" id="btn-new">New</button>
+    <div class="style-menu menu">
+      <button type="button" class="btn" id="btn-menu-help" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-help" aria-label="Help and style" title="Tutorial and style">?</button>
+      <div class="style-list menu-list" id="menu-help" role="menu" aria-label="Help and style" hidden>
+        <button type="button" class="style-option" role="menuitem" id="btn-tour"><span class="style-name">Tutorial</span><span class="style-note">Take the guided tour of the site</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-label">Style</div>
+        <div id="style-list" role="group" aria-label="Style"></div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -44,8 +55,6 @@
   <!-- View tools: same columns as the workspace, so they end where the 3D view ends -->
   <div class="topbar toolbar">
     <div class="topbar-main">
-      <!-- Example robots; buttons come from js/examples.js -->
-      <div class="examples" id="examples" role="group" aria-label="Examples"></div>
       <div class="view-tools" role="toolbar" aria-label="View">
         <div class="segmented" role="group" aria-label="Display mode">
           <button type="button" data-view="sim" aria-pressed="false">Simulate</button>
@@ -66,17 +75,14 @@
       <section class="panel-section">
         <div class="section-head">
           <h2 class="section-title">Assembly</h2>
-          <button type="button" class="btn btn-ghost btn-small" id="btn-tree-view" aria-pressed="false" title="Open the assembly as a tree diagram">Tree view</button>
+          <div class="section-tools">
+            <button type="button" class="btn btn-ghost btn-small" id="btn-collapse-all" title="Fold every limb to one line">Collapse all</button>
+            <button type="button" class="btn btn-ghost btn-small" id="btn-tree-view" aria-pressed="false" title="Open the assembly as a tree diagram">Tree view</button>
+          </div>
         </div>
-        <div id="tree"></div>
-      </section>
-      <section class="panel-section">
-        <div class="section-head">
-          <h2 class="section-title">Joints <span class="count" id="joint-count"></span></h2>
-          <button type="button" class="btn btn-ghost btn-small" id="btn-zero">Zero all</button>
-        </div>
+        <input type="search" id="tree-search" class="tree-search" placeholder="Find a part&hellip;" aria-label="Find a part" autocomplete="off">
         <div id="poses" class="poses"></div>
-        <div id="joints"></div>
+        <div id="tree"></div>
       </section>
     </aside>
 
@@ -141,4 +147,15 @@
     <button type="button" class="icon-btn" id="data-close" aria-label="Close">&times;</button>
   </div>
   <div class="dialog-body" id="data-body"></div>
+</dialog>
+<!-- Start screen: pick an example or a blank robot. Opens after the tutorial on page load, and from File > New. Cards come from js/examples.js. -->
+<dialog id="start-dialog" class="dialog start-dialog" aria-labelledby="start-title">
+  <div class="dialog-head">
+    <h2 id="start-title">Start a robot</h2>
+    <button type="button" class="icon-btn" id="start-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body">
+    <div class="start-grid" id="start-grid"></div>
+    <p class="muted" id="start-note"></p>
+  </div>
 </dialog>

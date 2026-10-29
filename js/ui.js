@@ -13,7 +13,6 @@ import { initSim, jointSpeed } from './simulate.js';
 import { computeWorkspaces, workspaceMesh } from './workspace.js';
 import { exportRobotSTEP, exportLinkSTEP } from './stepexport.js';
 import { exportURDF } from './urdf.js';
-import { EXAMPLES } from './examples.js';
 import * as THREE from 'three';
 
 const $ = (s, root = document) => root.querySelector(s);
@@ -69,6 +68,7 @@ const ui = {
   draftRobot: null,
   armedDelete: null,
   collapsed: new Set(), // ids of parts whose downstream parts are hidden in the assembly
+  search: '', // Assembly search box: when set, the list shows only the parts whose names match
   treeView: false, // the tree window (box-and-line diagram of the assembly) is open
   formulaOpen: new Set(), // Robot data: end effectors whose Jacobian formula is unfolded
   formulaCode: {}, // Robot data: Python for each end effector's Jacobian, for the Copy button
@@ -133,7 +133,7 @@ function onChange(kind) {
   resetDraftsForPort();
   refreshViewer();
   if (kind === 'selection' || kind === 'structure') revealSelection();
-  renderTree();
+  if (kind !== 'params' || !document.activeElement?.matches?.('#tree [data-q]')) renderTree();
   renderStatus();
   renderViewChrome();
   if (kind === 'structure' || kind === 'selection' || kind === 'units' || kind === 'view') {
@@ -142,45 +142,13 @@ function onChange(kind) {
   } else {
     renderMatrices();
   }
-  if (kind === 'structure' || kind === 'rename') renderJoints();
   renderRobotData(); // live while the window is open
   syncWorkspaces();
 }
 
 // ---------------------------------------------------------------- Top bar
 
-/** Example buttons. Loading one replaces the robot, so with parts built it takes a second click. */
-function bindExamples() {
-  const host = $('#examples');
-  host.innerHTML = `<span class="examples-label">Examples</span>` + EXAMPLES.map((ex) =>
-    `<button type="button" class="btn" data-example="${ex.id}" title="Load the ${esc(ex.label)} example">${esc(ex.label)}</button>`).join('');
-  let armed = null, timer = null;
-  const disarm = () => {
-    clearTimeout(timer);
-    if (armed) { armed.textContent = EXAMPLES.find((x) => x.id === armed.dataset.example).label; armed.classList.remove('is-armed'); }
-    armed = null;
-  };
-  host.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-example]');
-    if (!b) return;
-    const ex = EXAMPLES.find((x) => x.id === b.dataset.example);
-    const hasParts = Object.keys(state.robot.nodes).length > 1;
-    if (hasParts && armed !== b) {
-      disarm();
-      armed = b;
-      b.textContent = 'Replace robot?';
-      b.classList.add('is-armed');
-      timer = setTimeout(disarm, 3000);
-      return;
-    }
-    disarm();
-    store.load(ex.data);
-    ui.viewer.fit();
-  });
-}
-
 function bindTopbar() {
-  bindExamples();
   $('#tube-toggle').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tube]');
     if (b && b.dataset.tube !== hooks.tubeShape) hooks.setTubeShape(b.dataset.tube);
@@ -192,22 +160,6 @@ function bindTopbar() {
     if (b) store.setUnits(b.dataset.units);
   });
   $('#project-name').addEventListener('input', (e) => { state.name = e.target.value; });
-
-  const btn = $('#btn-new');
-  let timer = null;
-  const disarm = () => { clearTimeout(timer); timer = null; btn.textContent = 'New'; btn.classList.remove('is-armed'); };
-  btn.addEventListener('click', () => {
-    const hasParts = Object.keys(state.robot.nodes).length > 1;
-    if (hasParts && !timer) {
-      btn.textContent = 'Discard robot?';
-      btn.classList.add('is-armed');
-      timer = setTimeout(disarm, 3000);
-      return;
-    }
-    disarm();
-    store.newRobot();
-    ui.viewer.fit();
-  });
 }
 
 function renderViewChrome() {
@@ -263,6 +215,16 @@ function meta(n) {
   return e ? len(Math.hypot(e[12], e[13], e[14]), state.units === 'in' ? 2 : 0) : '';
 }
 
+/** Joint slider shown under an actuator's row in the Assembly list. */
+const jointSlider = (n) => `<div class="tree-joint">
+    <input type="range" min="${-JOINT_LIMIT}" max="${JOINT_LIMIT}" step="1" value="${n.q}" data-q="${n.id}" aria-label="${esc(n.name || 'Joint')} angle">
+    <output data-q-out="${n.id}">${Math.round(n.q)}°</output></div>`;
+
+/** The first part of every limb: what's attached to each output of a link with several outputs. */
+const limbRoots = () => Object.values(state.robot.nodes)
+  .filter((n) => n.type === 'link' && n.children.length > 1)
+  .flatMap((n) => n.children.filter((c) => c && hiddenCount(c)));
+
 /** Parts attached after this one (not counting open ports). */
 const hiddenCount = (id) => store.subtree(id).length - 1;
 
@@ -307,11 +269,28 @@ function renderTree() {
       <span class="tree-meta">${len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}</span></div></li>`
     : `<li><button type="button" class="tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
       <span class="port-dot" aria-hidden="true"></span><span class="tree-name">Open port</span><span class="tree-meta">attach</span></button></li>`);
+  const row = (n, fold) => `<li><div class="tree-line">${fold ? caret(n, 'tree-caret') : ''}<button type="button" class="tree-row${nodeOn(n.id) ? ' is-selected' : ''}" data-node="${n.id}">
+      ${chip(n)}<span class="tree-name">${esc(n.name || 'Unnamed')}</span><span class="tree-meta">${esc(meta(n))}</span></button></div>
+      ${n.type === 'actuator' ? jointSlider(n) : ''}</li>`;
+  const roots = limbRoots();
+  const fold = $('#btn-collapse-all');
+  fold.hidden = !roots.length;
+  fold.textContent = roots.length && roots.every((id) => ui.collapsed.has(id)) ? 'Expand all' : 'Collapse all';
+
+  // Search: a flat list of the parts whose names match, in build order.
+  const q = ui.search.trim().toLowerCase();
+  if (q) {
+    const hits = store.buildOrder().map(node).filter((n) => (n.name || '').toLowerCase().includes(q));
+    $('#tree').innerHTML = hits.length
+      ? `<ul class="tree" role="tree" aria-label="Matching parts">${hits.map((n) => row(n, false)).join('')}</ul>`
+      : `<p class="empty">No part is called “${esc(ui.search.trim())}”.</p>`;
+    return;
+  }
+
   // Serial chains stay flat; only a link with several outputs indents.
   const chain = (id) => {
     const n = node(id);
-    let html = `<li><div class="tree-line">${caret(n, 'tree-caret')}<button type="button" class="tree-row${nodeOn(id) ? ' is-selected' : ''}" data-node="${id}">
-      ${chip(n)}<span class="tree-name">${esc(n.name || 'Unnamed')}</span><span class="tree-meta">${esc(meta(n))}</span></button></div></li>`;
+    let html = row(n, true);
     if (ui.collapsed.has(id)) {
       return html + `<li><button type="button" class="tree-hidden" data-collapse="${id}">+${hiddenCount(id)} hidden · show</button></li>`;
     }
@@ -370,25 +349,20 @@ function bindTree() {
   };
   $('#tree').addEventListener('click', onClick);
   $('#tree-diagram').addEventListener('click', onClick);
+
+  $('#tree-search').addEventListener('input', (e) => { ui.search = e.target.value; renderTree(); });
+  $('#btn-collapse-all').addEventListener('click', () => {
+    const roots = limbRoots();
+    if (roots.every((id) => ui.collapsed.has(id))) roots.forEach((id) => ui.collapsed.delete(id));
+    else roots.forEach((id) => ui.collapsed.add(id));
+    renderTree();
+  });
 }
 
 // ---------------------------------------------------------------- Joints
 
-function renderJoints() {
-  const acts = store.buildOrder().map(node).filter((n) => n.type === 'actuator');
-  $('#joint-count').textContent = acts.length ? `${acts.length} DoF` : '';
-  $('#joints').innerHTML = acts.length
-    ? acts.map((n) => `
-      <div class="joint">
-        <label for="q-${n.id}">${esc(n.name || 'Unnamed')}</label>
-        <input type="range" id="q-${n.id}" min="${-JOINT_LIMIT}" max="${JOINT_LIMIT}" step="1" value="${n.q}" data-q="${n.id}">
-        <output data-q-out="${n.id}">${n.q}°</output>
-      </div>`).join('')
-    : '<p class="empty">Joint sliders appear here as you add actuators.</p>';
-}
-
 function bindJoints() {
-  // Joint sliders live in both the Joints panel and the inspector; keep them in sync.
+  // Joint sliders live in both the Assembly list and the inspector; keep them in sync.
   document.addEventListener('input', (e) => {
     const id = e.target.dataset?.q;
     if (!id || !node(id)) return;
@@ -397,10 +371,6 @@ function bindJoints() {
     $$(`[data-q="${id}"]`).forEach((el) => { if (el !== e.target) el.value = n.q; });
     $$(`[data-q-out="${id}"]`).forEach((el) => { el.textContent = `${n.q}°`; });
     store.emit('params');
-  });
-  $('#btn-zero').addEventListener('click', () => {
-    for (const n of Object.values(state.robot.nodes)) if (n.type === 'actuator') n.q = 0;
-    store.emit('structure');
   });
 }
 

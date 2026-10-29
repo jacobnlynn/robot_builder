@@ -46,19 +46,15 @@ body { font-size: 14px; }
 .brand-sep { color: var(--line); font-size: 24px; }
 .project-name { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
 .project-name:focus { border-color: var(--ink); }
-/* The file actions are one joined row of cells */
+/* The two menus are one joined row of cells; File is the accent cell */
 .top-actions { gap: 0; border: 1px solid var(--ink); }
-.top-actions .btn { min-height: 38px; border: 0; border-right: 1px solid var(--ink); }
-.top-actions .btn:last-child { border-right: 0; background: var(--accent); color: #ffffff; font-weight: 600; }
-.top-actions .btn:last-child:hover { background: #083ba8; }
-.top-actions .btn.is-armed { background: var(--danger-soft); color: var(--danger); }
+.top-actions .menu > .btn { min-height: 38px; border: 0; border-right: 1px solid var(--ink); }
+.top-actions .menu:last-of-type > .btn { border-right: 0; }
+#btn-menu-file { background: var(--accent); color: #ffffff; font-weight: 600; }
+#btn-menu-file:hover { background: #083ba8; }
 
 /* ---- Tool bar ---- */
 .toolbar { border-bottom: 1px solid var(--ink); }
-.examples-label { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.examples .btn { padding: 4px 6px; border: 0; background: transparent; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
-.examples .btn:hover { background: var(--accent-soft); }
-.examples .btn.is-armed { color: var(--danger); background: var(--danger-soft); }
 
 /* Toggle groups become underlined tabs */
 .segmented, .tabs { gap: 18px; padding: 0; background: transparent; border: 0; }
@@ -77,12 +73,11 @@ body { font-size: 14px; }
 #btn-data { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 /* ---- Panels: ruled columns, numbered sections ---- */
-.panel-left { border-right: 1px solid var(--ink); counter-reset: section; }
+.panel-left { border-right: 1px solid var(--ink); }
 .panel-right { border-left: 1px solid var(--ink); }
 .panel-section, .insp-section { padding: 16px 20px; border-bottom: 1px solid var(--ink); }
 .panel-section:last-child, .insp-section:last-child { border-bottom: 0; }
 .section-title { font-size: 15px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink); }
-.panel-left .section-title::before { counter-increment: section; content: counter(section) " · "; }
 .count { font-size: 11px; }
 
 /* Assembly: a parts table */

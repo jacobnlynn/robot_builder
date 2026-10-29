@@ -42,7 +42,7 @@ body {
 .hint { font-size: 12px; }
 
 /* Zine voice: controls and labels in lower case */
-.btn, .segmented button, .tab, .section-title, .eyebrow, .examples-label, .vp-badge, .statusbar, .branch-label, .dh legend {
+.btn, .segmented button, .tab, .section-title, .eyebrow, .vp-badge, .statusbar, .branch-label, .dh legend {
   text-transform: lowercase;
 }
 
@@ -68,9 +68,6 @@ body {
 
 /* ---- Tool bar ---- */
 .toolbar { border-bottom: 2px solid var(--ink); }
-.examples-label { font-family: var(--font-mono); font-size: 12px; color: var(--accent-ink); }
-.examples-label::after { content: " →"; }
-.examples .btn { border: 0; padding: 4px 6px; font: 700 14px var(--font-ui); text-decoration: underline; text-underline-offset: 3px; }
 
 /* Toggle groups: the chosen one gets a pink overprint */
 .segmented, .tabs { gap: 4px; padding: 0; background: transparent; border: 0; }

@@ -1,4 +1,4 @@
-// Style menu: switch the whole site between visual themes. A theme is a stylesheet loaded after
+// Style choices (in the ? menu): switch the whole site between visual themes. A theme is a stylesheet loaded after
 // style.css (it only overrides it) plus, optionally, colours for the 3D view. Retro is the default;
 // the choice is remembered in this browser.
 import * as store from './robot.js';
@@ -52,27 +52,18 @@ export function applyTheme(key, viewer) {
 }
 
 function renderMenu() {
-  const btn = document.getElementById('btn-style');
-  btn.textContent = `Style: ${THEMES[current].label}`;
   for (const item of document.querySelectorAll('[data-style]')) item.setAttribute('aria-checked', String(item.dataset.style === current));
 }
 
+/** Fills the Style group of the ? menu; js/menus.js opens and closes the menu. */
 export function initStyles(viewer) {
-  const btn = document.getElementById('btn-style');
   const list = document.getElementById('style-list');
   list.innerHTML = Object.entries(THEMES).map(([k, t]) => `<button type="button" class="style-option" role="menuitemradio" data-style="${k}" aria-checked="false">
       <span class="style-name">${t.label}</span></button>`).join('');
-  const open = (on) => { list.hidden = !on; btn.setAttribute('aria-expanded', String(on)); };
-  btn.addEventListener('click', () => open(list.hidden));
   list.addEventListener('click', (e) => {
     const item = e.target.closest('[data-style]');
-    if (!item) return;
-    open(false);
-    if (item.dataset.style !== current) applyTheme(item.dataset.style, viewer);
-    btn.focus();
+    if (item && item.dataset.style !== current) applyTheme(item.dataset.style, viewer);
   });
-  document.addEventListener('click', (e) => { if (!list.hidden && !e.target.closest('.style-menu')) open(false); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !list.hidden) { open(false); btn.focus(); } });
 
   let saved = null;
   try { saved = localStorage.getItem(KEY); } catch { /* storage blocked: use the default */ }

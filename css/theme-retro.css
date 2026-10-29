@@ -168,6 +168,16 @@ input[type="range"] { accent-color: var(--accent); }
 .pose-go[aria-pressed="true"] { border-color: var(--sunken); background: var(--panel-sunk); color: #000000; font-weight: bold; }
 .pose-del { border: 2px solid; border-color: var(--raised); border-left: 0; background: var(--panel); color: #000000; font: bold 12px Arial, sans-serif; }
 .pose-form input { border: 2px solid; border-color: var(--sunken); background: #ffffff; }
+.tree-search { border: 2px solid; border-color: var(--sunken); border-radius: 0; background: #ffffff; }
+.tree-joint output { font-size: 13px; color: #000000; }
+.menu-sep { border-top: 1px solid #808080; border-bottom: 1px solid #ffffff; }
+.menu-label { font-size: 13px; font-style: italic; font-weight: normal; letter-spacing: 0; text-transform: none; color: #404040; }
+.start-card { border: 2px solid; border-color: var(--raised); border-radius: 0; background: var(--panel); }
+.start-card:hover, .start-card:focus-visible { border-color: var(--raised); background: var(--panel); outline: 1px dotted #000000; outline-offset: -5px; }
+.start-card:active { border-color: var(--sunken); }
+.start-pic { border: 2px solid; border-color: var(--sunken); border-radius: 0; }
+.start-name { font-weight: bold; }
+.start-note { font-size: 13px; color: #404040; }
 
 /* ---- Inspector ---- */
 .eyebrow { font-size: 13px; font-style: italic; font-weight: normal; letter-spacing: 0; text-transform: none; color: #404040; }

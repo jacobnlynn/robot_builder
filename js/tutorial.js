@@ -1,5 +1,5 @@
 // Guided tour: a small window that walks through the site, with an arrow pointing at the button
-// or panel it is talking about. It opens every time the site opens, and from the Tutorial button. Every step sets up everything it needs from scratch, so Back always works,
+// or panel it is talking about. It opens every time the site opens, and from ? > Tutorial. Every step sets up everything it needs from scratch, so Back always works,
 // including through the steps that build the example arm piece by piece.
 import * as THREE from 'three';
 import * as store from './robot.js';
@@ -72,8 +72,10 @@ const STEPS = [
   },
   {
     title: 'Examples',
-    target: '#examples',
-    text: '<p>Load a finished robot here any time to explore it: a dog, a hexapod, a 7-joint arm or a humanoid.</p>',
+    target: '#btn-menu-file',
+    text: `<p>File &gt; New opens the start screen: load a finished robot any time to explore it (a dog, a hexapod,
+      a 7-joint arm, a humanoid or JPL's RoboSimian), or start from a blank one.</p>
+      <p>The File menu also opens and saves projects as JSON, and exports STEP and URDF.</p>`,
     setup: view('cad'),
   },
   {
@@ -105,8 +107,8 @@ const STEPS = [
   },
   {
     title: 'Start a new robot',
-    target: '#btn-new',
-    text: `<p>Now let's build one. New starts an empty robot: just the base, a locked link at the world origin.
+    target: '#btn-menu-file',
+    text: `<p>Now let's build one. File &gt; New &gt; Blank starts an empty robot: just the base, a locked link at the world origin.
       Its blue dot is an open port, where the next part attaches.</p>
       <p>Over the next four steps we'll build a simple arm, one piece at a time.</p>`,
     setup: armStep(0, () => ({ kind: 'port', nodeId: 'base', index: 0 })),
@@ -133,14 +135,17 @@ const STEPS = [
     target: '.panel-left .panel-section:first-child',
     text: `<p>Then an Elbow actuator and a Forearm link ending in a sphere. The Assembly list shows the
       whole robot as a tree: click any part to edit it, or an open port to attach something.</p>
-      <p>Use the − / + buttons to fold branches, or Tree view for a diagram.</p>`,
+      <p>Use the − / + buttons to fold branches, Collapse all to fold every limb to one line, the search box to find
+      a part by name, or Tree view for a diagram.</p>`,
     setup: armStep(4, null),
   },
   {
     title: '4 · Joints',
-    target: '.panel-left .panel-section:nth-child(2)',
-    text: `<p>That's a two-joint arm. The Joints panel has a slider for every actuator. We've moved the shoulder
-      and elbow so you can see it bend. Zero all puts every joint back to 0°.</p>`,
+    target: '#tree',
+    text: `<p>That's a two-joint arm. Every actuator in the Assembly list has a slider under it for its joint angle.
+      We've moved the shoulder and elbow so you can see it bend.</p>
+      <p>Above the list, Save pose keeps the current angles under a name (every example comes with a few poses),
+      and Zero all puts every joint back to 0°.</p>`,
     setup: (ctx) => {
       armStep(4, null)(ctx);
       const [shoulder, elbow] = Object.values(state.robot.nodes).filter((n) => n.type === 'actuator');
@@ -162,14 +167,14 @@ const STEPS = [
   },
   {
     title: 'Export STEP',
-    target: '#btn-export-step',
-    text: `<p>Export STEP downloads the whole robot as one CAD assembly: every actuator as its full model with all of its
+    target: '#btn-menu-file',
+    text: `<p>File &gt; Export STEP downloads the whole robot as one CAD assembly: every actuator as its full model with all of its
       interior parts, and every link filled in as a printable part.</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cadfile'); },
   },
   {
     title: 'From file to robot',
-    target: '#btn-export-step',
+    target: '#btn-menu-file',
     text: `<p>That STEP file is meant to be a complete robot model: print and assemble the parts, and all that is left is to
       wire the motors and program it.</p>
       <p>(The full models may still have small mechanical bugs while the design is being refined.)</p>`,
@@ -177,17 +182,17 @@ const STEPS = [
   },
   {
     title: 'Export URDF',
-    target: '#btn-export-urdf',
-    text: `<p>Export URDF saves your robot for simulation: a robot.urdf with its joints, limits, torques and masses,
+    target: '#btn-menu-file',
+    text: `<p>File &gt; Export URDF saves your robot for simulation: a robot.urdf with its joints, limits, torques and masses,
       plus the meshes. Load it in MuJoCo (or Gazebo, PyBullet, Isaac Sim) to test it before you build it.</p>
-      <p>That's the tour. You can replay it any time from the Tutorial button. Happy building!</p>`,
+      <p>That's the tour. Start your own from File &gt; New, and replay the tour any time from the ? menu. Happy building!</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cad'); },
   },
 ];
 
 // ---- The window ----
 
-export function initTutorial(viewer) {
+export function initTutorial(viewer, { onClose } = {}) {
   const ctx = { viewer };
   const box = document.createElement('div');
   box.className = 'tour';
@@ -289,6 +294,7 @@ export function initTutorial(viewer) {
     box.hidden = true;
     target?.classList.remove('tour-target');
     target = null;
+    onClose?.();
   }
 
   box.addEventListener('click', (e) => {

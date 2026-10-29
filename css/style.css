@@ -89,8 +89,6 @@ body { display: flex; flex-direction: column; }
 .mtx tbody tr:nth-child(3) td, .mtx tbody tr:nth-child(3) th { border-bottom: 1px dashed var(--line); }
 .data-table tbody th { text-align: left; }
 .data-table tbody tr + tr td, .data-table tbody tr + tr th { border-top: 1px solid var(--line); }
-.examples { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.examples-label { margin-right: 2px; color: var(--muted); }
 .brand { display: flex; align-items: center; gap: 10px; flex: 1 1 280px; min-width: 0; }
 .brand svg { flex: none; }
 .brand-name { font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
@@ -307,10 +305,19 @@ body { display: flex; flex-direction: column; }
   text-align: right;
   color: var(--ink-2);
 }
-/* Saved poses, above the sliders */
+/* Assembly: search box, and a joint slider under each actuator row */
+.panel-left .section-head { flex-wrap: wrap; }
+.section-tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.section-tools .btn[hidden] { display: none; }
+.tree-search { width: 100%; margin-bottom: 8px; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--panel); color: var(--ink); font: inherit; }
+.tree-joint { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: center; gap: 6px; padding: 0 4px 4px 34px; }
+.tree-joint output { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-2); }
+
+/* Saved poses, above the Assembly list */
 .poses:empty { display: none; }
 .poses { padding: 2px 0 8px; margin-bottom: 4px; border-bottom: 1px dashed var(--line); }
 .poses-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.poses-tools { display: flex; gap: 4px; }
 .pose-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .pose-chip { display: inline-flex; align-items: stretch; }
 .pose-go[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
@@ -617,7 +624,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .formula-code { max-height: 260px; overflow: auto; margin: 6px 0 0; padding: 8px 10px; font: 11.5px/1.45 var(--font-mono);
   background: var(--panel-sunk); border: 1px solid var(--line); border-radius: var(--radius-sm); white-space: pre; }
 
-/* Style menu (top bar) */
+/* Top bar menus (File, ?) */
 .style-menu { position: relative; }
 .style-list { position: absolute; top: calc(100% + 4px); right: 0; z-index: 60; display: flex; flex-direction: column; min-width: 220px; padding: 4px;
   background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow-float); }
@@ -627,4 +634,23 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .style-option:hover, .style-option:focus-visible { background: var(--accent-soft); }
 .style-option[aria-checked="true"]::before { content: "✓"; position: absolute; left: 10px; top: 7px; font-weight: 700; color: var(--accent-ink); }
 .style-name { font-weight: 600; }
+.menu-list { min-width: 250px; }
+.menu-sep { margin: 4px 2px; border-top: 1px solid var(--line); }
+.menu-label { padding: 4px 10px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+#btn-menu-help { min-width: 32px; font-weight: 700; }
+
+/* Start screen (File > New) */
+.dialog.start-dialog { width: min(860px, calc(100vw - 32px)); }
+.start-dialog .dialog-body { max-height: calc(100vh - 120px); overflow: auto; }
+.start-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.start-card { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.start-card:hover, .start-card:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.start-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; margin-bottom: 6px; overflow: hidden; background: var(--viewport); border-radius: var(--radius-sm); }
+.start-pic img { width: 100%; height: 100%; object-fit: contain; }
+.start-pic svg { width: 44%; }
+.start-blank-base { fill: var(--muted); }
+.start-blank-port { fill: var(--accent); }
+.start-name { font-weight: 600; }
+.start-note { font-size: 12px; color: var(--muted); }
 .style-note { font-size: 12px; color: var(--muted); }

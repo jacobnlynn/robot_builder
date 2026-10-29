@@ -5,20 +5,27 @@ import { EXAMPLES } from './examples.js';
 import { initTutorial } from './tutorial.js';
 import { initStyles } from './styles.js';
 import { initPoses } from './poses.js';
+import { initMenus } from './menus.js';
+import { initStart } from './start.js';
 import './linkfill.js'; // trial: filled links in the CAD tab and their STEP solids (delete this line to remove)
 
 const viewer = createViewer(document.getElementById('viewport'), {
   onPick: (pick) => store.select(pick),
 });
 initUI(viewer);
-// Saved poses, listed above the joint sliders.
+// Saved poses, listed above the Assembly list.
 initPoses(viewer);
+// Top bar menus (File, ?) and the start screen (File > New).
+initMenus();
+const start = initStart(viewer);
 // The module STEP files load when first needed; redraw (and refresh the legend) as each arrives.
 setCadListener(() => { viewer.redraw(); store.emit('view'); });
 // Open on the first example.
 store.load(EXAMPLES[0].data);
 viewer.fit();
-// Style menu: Retro (default), Normal (Datasheet), Risograph. After the first robot loads, so it can redraw.
+// Style choices in the ? menu: Retro (default), Normal (Datasheet), Risograph. After the first robot loads, so it can redraw.
 initStyles(viewer);
-// Guided tour: opens every time the site opens, and from the Tutorial button.
-initTutorial(viewer);
+// Guided tour: opens every time the site opens, and from ? > Tutorial. When it closes the first
+// time, the start screen offers the examples.
+let first = true;
+initTutorial(viewer, { onClose: () => { if (first) { first = false; start.open(); } } });
