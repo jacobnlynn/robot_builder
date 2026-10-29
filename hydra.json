@@ -1,0 +1,1254 @@
+{
+  "format": "modular-robot",
+  "version": 1,
+  "convention": "standard",
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "name": "Hydra",
+  "rootId": "base",
+  "nodes": [
+    {
+      "id": "base",
+      "type": "link",
+      "name": "Base",
+      "spec": "dh",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 0,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "pedestal"
+      ],
+      "fixed": true,
+      "parent": null
+    },
+    {
+      "id": "pedestal",
+      "type": "link",
+      "name": "Pedestal",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 56.515,
+            "y": 0,
+            "z": 101.6,
+            "alpha": 0,
+            "beta": 270,
+            "gamma": 0,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "turret"
+      ],
+      "parent": {
+        "nodeId": "base",
+        "index": 0
+      }
+    },
+    {
+      "id": "turret",
+      "type": "actuator",
+      "name": "Turret",
+      "motor": "m1",
+      "gearboxes": [
+        "cycloidal_18",
+        "cycloidal_18"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "shoulder"
+      ],
+      "parent": {
+        "nodeId": "pedestal",
+        "index": 0
+      }
+    },
+    {
+      "id": "shoulder",
+      "type": "actuator",
+      "name": "Shoulder",
+      "motor": "m1",
+      "gearboxes": [
+        "cycloidal_18",
+        "cycloidal_18"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "trunk"
+      ],
+      "parent": {
+        "nodeId": "turret",
+        "index": 0
+      }
+    },
+    {
+      "id": "trunk",
+      "type": "link",
+      "name": "Trunk",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -230.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "neck"
+      ],
+      "parent": {
+        "nodeId": "shoulder",
+        "index": 0
+      }
+    },
+    {
+      "id": "neck",
+      "type": "actuator",
+      "name": "Neck",
+      "motor": "m1",
+      "gearboxes": [
+        "harmonic_45_2",
+        "planetary_3"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "fork"
+      ],
+      "parent": {
+        "nodeId": "trunk",
+        "index": 0
+      }
+    },
+    {
+      "id": "fork",
+      "type": "link",
+      "name": "Fork",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -139.256,
+            "y": -97.508,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 215,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -139.256,
+            "y": 97.508,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 145,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "left_yaw",
+        "right_yaw"
+      ],
+      "parent": {
+        "nodeId": "neck",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_yaw",
+      "type": "actuator",
+      "name": "Left neck yaw",
+      "motor": "m1",
+      "gearboxes": [
+        "harmonic_45_2",
+        "planetary_3"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "left_reach"
+      ],
+      "parent": {
+        "nodeId": "fork",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_reach",
+      "type": "link",
+      "name": "Left neck",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -200.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "left_pitch"
+      ],
+      "parent": {
+        "nodeId": "left_yaw",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_pitch",
+      "type": "actuator",
+      "name": "Left neck pitch",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "left_split"
+      ],
+      "parent": {
+        "nodeId": "left_reach",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_split",
+      "type": "link",
+      "name": "Left split",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -141.842,
+            "y": -110.819,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 218,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -141.842,
+            "y": 110.819,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 142,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "left_upper_wrist",
+        "left_lower_wrist"
+      ],
+      "parent": {
+        "nodeId": "left_pitch",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_upper_wrist",
+      "type": "actuator",
+      "name": "Left upper head",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "left_upper_palm"
+      ],
+      "parent": {
+        "nodeId": "left_split",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_upper_palm",
+      "type": "link",
+      "name": "Left upper palm",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": -68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 215,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": 68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 145,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "left_upper_finger_a",
+        "left_upper_finger_b"
+      ],
+      "parent": {
+        "nodeId": "left_upper_wrist",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_upper_finger_a",
+      "type": "actuator",
+      "name": "Left upper finger A",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "left_upper_tip_a"
+      ],
+      "parent": {
+        "nodeId": "left_upper_palm",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_upper_tip_a",
+      "type": "link",
+      "name": "Left upper fingertip A",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "left_upper_finger_a",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_upper_finger_b",
+      "type": "actuator",
+      "name": "Left upper finger B",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "left_upper_tip_b"
+      ],
+      "parent": {
+        "nodeId": "left_upper_palm",
+        "index": 1
+      }
+    },
+    {
+      "id": "left_upper_tip_b",
+      "type": "link",
+      "name": "Left upper fingertip B",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "left_upper_finger_b",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_lower_wrist",
+      "type": "actuator",
+      "name": "Left lower head",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "left_lower_palm"
+      ],
+      "parent": {
+        "nodeId": "left_split",
+        "index": 1
+      }
+    },
+    {
+      "id": "left_lower_palm",
+      "type": "link",
+      "name": "Left lower palm",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": -68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 215,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": 68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 145,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "left_lower_finger_a",
+        "left_lower_finger_b"
+      ],
+      "parent": {
+        "nodeId": "left_lower_wrist",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_lower_finger_a",
+      "type": "actuator",
+      "name": "Left lower finger A",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "left_lower_tip_a"
+      ],
+      "parent": {
+        "nodeId": "left_lower_palm",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_lower_tip_a",
+      "type": "link",
+      "name": "Left lower fingertip A",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "left_lower_finger_a",
+        "index": 0
+      }
+    },
+    {
+      "id": "left_lower_finger_b",
+      "type": "actuator",
+      "name": "Left lower finger B",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "left_lower_tip_b"
+      ],
+      "parent": {
+        "nodeId": "left_lower_palm",
+        "index": 1
+      }
+    },
+    {
+      "id": "left_lower_tip_b",
+      "type": "link",
+      "name": "Left lower fingertip B",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "left_lower_finger_b",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_yaw",
+      "type": "actuator",
+      "name": "Right neck yaw",
+      "motor": "m1",
+      "gearboxes": [
+        "harmonic_45_2",
+        "planetary_3"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "right_reach"
+      ],
+      "parent": {
+        "nodeId": "fork",
+        "index": 1
+      }
+    },
+    {
+      "id": "right_reach",
+      "type": "link",
+      "name": "Right neck",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -200.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "right_pitch"
+      ],
+      "parent": {
+        "nodeId": "right_yaw",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_pitch",
+      "type": "actuator",
+      "name": "Right neck pitch",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "right_split"
+      ],
+      "parent": {
+        "nodeId": "right_reach",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_split",
+      "type": "link",
+      "name": "Right split",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -141.842,
+            "y": -110.819,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 218,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -141.842,
+            "y": 110.819,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 142,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "right_upper_wrist",
+        "right_lower_wrist"
+      ],
+      "parent": {
+        "nodeId": "right_pitch",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_upper_wrist",
+      "type": "actuator",
+      "name": "Right upper head",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "right_upper_palm"
+      ],
+      "parent": {
+        "nodeId": "right_split",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_upper_palm",
+      "type": "link",
+      "name": "Right upper palm",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": -68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 215,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": 68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 145,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "right_upper_finger_a",
+        "right_upper_finger_b"
+      ],
+      "parent": {
+        "nodeId": "right_upper_wrist",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_upper_finger_a",
+      "type": "actuator",
+      "name": "Right upper finger A",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "right_upper_tip_a"
+      ],
+      "parent": {
+        "nodeId": "right_upper_palm",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_upper_tip_a",
+      "type": "link",
+      "name": "Right upper fingertip A",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "right_upper_finger_a",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_upper_finger_b",
+      "type": "actuator",
+      "name": "Right upper finger B",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "right_upper_tip_b"
+      ],
+      "parent": {
+        "nodeId": "right_upper_palm",
+        "index": 1
+      }
+    },
+    {
+      "id": "right_upper_tip_b",
+      "type": "link",
+      "name": "Right upper fingertip B",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "right_upper_finger_b",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_lower_wrist",
+      "type": "actuator",
+      "name": "Right lower head",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 90,
+      "q": 0,
+      "children": [
+        "right_lower_palm"
+      ],
+      "parent": {
+        "nodeId": "right_split",
+        "index": 1
+      }
+    },
+    {
+      "id": "right_lower_palm",
+      "type": "link",
+      "name": "Right lower palm",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": -68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 215,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        },
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -98.298,
+            "y": 68.829,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 145,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          }
+        }
+      ],
+      "children": [
+        "right_lower_finger_a",
+        "right_lower_finger_b"
+      ],
+      "parent": {
+        "nodeId": "right_lower_wrist",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_lower_finger_a",
+      "type": "actuator",
+      "name": "Right lower finger A",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "right_lower_tip_a"
+      ],
+      "parent": {
+        "nodeId": "right_lower_palm",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_lower_tip_a",
+      "type": "link",
+      "name": "Right lower fingertip A",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "right_lower_finger_a",
+        "index": 0
+      }
+    },
+    {
+      "id": "right_lower_finger_b",
+      "type": "actuator",
+      "name": "Right lower finger B",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "children": [
+        "right_lower_tip_b"
+      ],
+      "parent": {
+        "nodeId": "right_lower_palm",
+        "index": 1
+      }
+    },
+    {
+      "id": "right_lower_tip_b",
+      "type": "link",
+      "name": "Right lower fingertip B",
+      "spec": "pose",
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": -60.0,
+            "y": 0.0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 90,
+            "gamma": 180,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 12
+        }
+      ],
+      "children": [
+        null
+      ],
+      "parent": {
+        "nodeId": "right_lower_finger_b",
+        "index": 0
+      }
+    }
+  ]
+}

@@ -105,6 +105,30 @@ for (const [side, s] of [['left', 1], ['right', -1]]) {
   link(id('foot'), id('foot'), at(id('ankle')), [{ sphere: 35, at: v3(70, 230 * s, -650) }]);
 }
 
+// Saved poses (the Poses list above the joint sliders). Angles are given for the left side and
+// mirrored onto the right, whose joint axes point the other way, so every right joint is negated.
+const LIMB = ['shoulder_pitch', 'shoulder_roll', 'elbow', 'hip_pitch', 'hip_roll', 'knee', 'ankle'];
+function bodyPose(name, { left = {}, right = {}, both = {}, ...centre } = {}) {
+  const q = { waist: 0, neck_pan: 0, neck_tilt: 0, ...centre };
+  for (const j of LIMB) {
+    q[`left_${j}`] = left[j] ?? both[j] ?? 0;
+    q[`right_${j}`] = -(right[j] ?? both[j] ?? 0);
+  }
+  return { name, q };
+}
+const ARM_DOWN = { elbow: 90 };
+const poses = [
+  bodyPose('Ready'),
+  bodyPose('Arms down', { both: ARM_DOWN }),
+  bodyPose('T-pose', { both: { shoulder_roll: 90, elbow: 90 } }),
+  bodyPose('Wave', { left: ARM_DOWN, right: { shoulder_roll: 160, elbow: 60 }, neck_pan: -20 }),
+  bodyPose('Walk', {
+    left: { shoulder_pitch: 25, elbow: 60, hip_pitch: -25, knee: 10, ankle: 15 },
+    right: { shoulder_pitch: -25, elbow: 60, hip_pitch: 20, knee: 35, ankle: -55 },
+  }),
+  bodyPose('Squat', { both: { shoulder_pitch: -30, hip_pitch: -70, knee: 110, ankle: -40 } }),
+];
+
 export const HUMANOID = {
   format: 'modular-robot',
   version: 1,
@@ -113,4 +137,5 @@ export const HUMANOID = {
   name: 'humanoid',
   rootId: 'base',
   nodes,
+  poses,
 };

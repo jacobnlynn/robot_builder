@@ -2,6 +2,8 @@
 // leg a hip, upper and lower actuator joined by links. Exported from the builder as JSON.
 // The thigh links (L2, L4, L6, L8) have d = 1.75 in so each knee motor sits fully outboard of its
 // hip motor (5 mm gap) and can't swing into it.
+// Saved poses at the end: Stand (as loaded), Crouch, Tall, Sit (back legs folded) and Shake
+// (front right paw raised).
 export const ROBOT_DOG = {
   "format": "modular-robot",
   "version": 1,
@@ -316,5 +318,12 @@ export const ROBOT_DOG = {
       "id": "lmvg1ynyib",
       "parent": { "nodeId": "amvg1ydfta", "index": 0 }
     }
+  ],
+  "poses": [
+    { "name": "Stand", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -61, "amvg281qfj": 115, "amvg1ugoj2": 0, "amvg1w1317": 61, "amvg26757g": -115, "amvg1upky3": 0, "amvg1vfcl6": 61, "amvg211bjd": -115, "amvg1uw1a4": 0, "amvg1v6xf5": -61, "amvg1ydfta": 115 } },
+    { "name": "Crouch", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -75, "amvg281qfj": 150, "amvg1ugoj2": 0, "amvg1w1317": 75, "amvg26757g": -150, "amvg1upky3": 0, "amvg1vfcl6": 75, "amvg211bjd": -150, "amvg1uw1a4": 0, "amvg1v6xf5": -75, "amvg1ydfta": 150 } },
+    { "name": "Tall", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -45, "amvg281qfj": 80, "amvg1ugoj2": 0, "amvg1w1317": 45, "amvg26757g": -80, "amvg1upky3": 0, "amvg1vfcl6": 45, "amvg211bjd": -80, "amvg1uw1a4": 0, "amvg1v6xf5": -45, "amvg1ydfta": 80 } },
+    { "name": "Sit", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -45, "amvg281qfj": 80, "amvg1ugoj2": 0, "amvg1w1317": 45, "amvg26757g": -80, "amvg1upky3": 0, "amvg1vfcl6": 80, "amvg211bjd": -165, "amvg1uw1a4": 0, "amvg1v6xf5": -80, "amvg1ydfta": 165 } },
+    { "name": "Shake", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -61, "amvg281qfj": 115, "amvg1ugoj2": 0, "amvg1w1317": 125, "amvg26757g": -55, "amvg1upky3": 0, "amvg1vfcl6": 61, "amvg211bjd": -115, "amvg1uw1a4": 0, "amvg1v6xf5": -61, "amvg1ydfta": 115 } }
   ]
 };

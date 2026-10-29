@@ -67,6 +67,26 @@ LEGS.forEach((l, i) => {
   );
 });
 
+// Saved poses (the Poses list above the joint sliders): [hip, upper, lower] for each leg.
+// Tall and Wide push the feet further down or out; Tripod step lifts the front, back left and
+// back right legs and swings them forward while the other three push back; Wave raises the front leg.
+const TALL = [0, -95, -55];
+const TRIPOD = new Set(['front', 'back_left', 'back_right']);
+const legPose = (name, angles) => ({
+  name,
+  q: Object.fromEntries(LEGS.flatMap(({ key }) => {
+    const [hip, upper, lower] = angles(key);
+    return [[`${key}_hip`, hip], [`${key}_upper`, upper], [`${key}_lower`, lower]];
+  })),
+});
+const poses = [
+  legPose('Stand', () => [0, UPPER_Q, LOWER_Q]),
+  legPose('Tall', () => TALL),
+  legPose('Wide', () => [0, -100, -35]),
+  legPose('Tripod step', (key) => (TRIPOD.has(key) ? [15, -55, -75] : [-15, -100, -52])),
+  legPose('Wave', (key) => (key === 'front' ? [0, -15, -65] : [0, UPPER_Q, LOWER_Q])),
+];
+
 export const HEXAPOD = {
   format: 'modular-robot',
   version: 1,
@@ -75,4 +95,5 @@ export const HEXAPOD = {
   name: 'hexapod',
   rootId: 'base',
   nodes,
+  poses,
 };

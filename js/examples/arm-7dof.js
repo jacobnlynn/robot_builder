@@ -1,5 +1,6 @@
 // Example: 7-DoF arm. Seven actuators, each with two cycloidal 18:1 gearboxes, joined by
 // links. Exported from the builder as JSON (only the project name was changed).
+// Saved poses at the end: Home (straight up, as loaded), Ready, Reach, Pick left, Twist and Folded.
 export const ARM_7DOF = {
   "format": "modular-robot",
   "version": 1,
@@ -206,5 +207,13 @@ export const ARM_7DOF = {
       "id": "amvge8j71d",
       "parent": { "nodeId": "lmvge85z4c", "index": 0 }
     }
+  ],
+  "poses": [
+    { "name": "Home", "q": { "amvge2dwc1": 0, "amvge2kgn2": 0, "amvge4qfp5": 0, "amvge6dyy6": 0, "amvge7ccc9": 0, "amvge7ne1a": 0, "amvge8j71d": 0 } },
+    { "name": "Ready", "q": { "amvge2dwc1": 0, "amvge2kgn2": 25, "amvge4qfp5": 0, "amvge6dyy6": 75, "amvge7ccc9": 0, "amvge7ne1a": 70, "amvge8j71d": 0 } },
+    { "name": "Reach", "q": { "amvge2dwc1": 0, "amvge2kgn2": 70, "amvge4qfp5": 0, "amvge6dyy6": 20, "amvge7ccc9": 0, "amvge7ne1a": 0, "amvge8j71d": 0 } },
+    { "name": "Pick left", "q": { "amvge2dwc1": 90, "amvge2kgn2": 45, "amvge4qfp5": 0, "amvge6dyy6": 70, "amvge7ccc9": 0, "amvge7ne1a": 60, "amvge8j71d": 0 } },
+    { "name": "Twist", "q": { "amvge2dwc1": -40, "amvge2kgn2": 30, "amvge4qfp5": 60, "amvge6dyy6": 60, "amvge7ccc9": -60, "amvge7ne1a": 45, "amvge8j71d": 90 } },
+    { "name": "Folded", "q": { "amvge2dwc1": 0, "amvge2kgn2": -10, "amvge4qfp5": 0, "amvge6dyy6": 120, "amvge7ccc9": 0, "amvge7ne1a": -110, "amvge8j71d": 0 } }
   ]
 };

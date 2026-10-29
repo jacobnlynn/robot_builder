@@ -28,11 +28,13 @@ export const state = {
   showFrames: true,
   units: 'mm', // display only: 'mm' | 'in'. Everything is stored in mm.
   born: {}, // nodeId → timestamp the part starts growing in
+  // Saved poses: [{ name, q: { actuatorId: degrees } }]. Saved with the robot.
+  poses: [],
 };
 
 const listeners = new Set();
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-// kinds: 'structure' | 'params' | 'rename' | 'selection' | 'view'
+// kinds: 'structure' | 'params' | 'rename' | 'selection' | 'view' | 'poses'
 export function emit(kind) { for (const fn of listeners) fn(kind); }
 
 let counter = 0;
@@ -67,6 +69,7 @@ function emptyRobot() {
 export function newRobot(name = 'Untitled robot') {
   state.robot = emptyRobot();
   state.name = name;
+  state.poses = [];
   state.born = { base: performance.now() };
   state.selection = { kind: 'port', nodeId: 'base', index: 0 };
   emit('structure');
@@ -204,7 +207,32 @@ export function serialize() {
     name: state.name,
     rootId: state.robot.rootId,
     nodes: buildOrder().map(node),
+    poses: state.poses.map(cleanPose),
   }, null, 2);
+}
+
+// ---- Poses ----
+
+/** A pose's angles for the actuators that still exist (parts may have been deleted since). */
+function cleanPose(p) {
+  const q = {};
+  for (const [id, v] of Object.entries(p.q)) if (node(id)?.type === 'actuator') q[id] = v;
+  return { name: p.name, q };
+}
+
+/** Save every joint's current angle under `name`, replacing a pose with the same name. */
+export function savePose(name) {
+  const q = {};
+  for (const id of buildOrder()) if (node(id).type === 'actuator') q[id] = node(id).q;
+  const at = state.poses.findIndex((p) => p.name === name);
+  if (at >= 0) state.poses[at] = { name, q };
+  else state.poses.push({ name, q });
+  emit('poses');
+}
+
+export function deletePose(index) {
+  state.poses.splice(index, 1);
+  emit('poses');
 }
 
 export function load(source) {
@@ -256,6 +284,9 @@ export function load(source) {
 
   state.robot = { rootId: data.rootId, nodes };
   state.name = data.name || 'Untitled robot';
+  state.poses = Array.isArray(data.poses)
+    ? data.poses.filter((p) => p && typeof p.q === 'object').map((p, i) => ({ name: String(p.name || `Pose ${i + 1}`), q: { ...p.q } }))
+    : [];
 
   // Stagger the birth times in build order so the robot assembles on screen.
   const now = performance.now();
