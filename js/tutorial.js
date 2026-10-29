@@ -73,8 +73,8 @@ const STEPS = [
   {
     title: 'Examples',
     target: '#btn-menu-file',
-    text: `<p>File &gt; New opens the start screen: load a finished robot any time to explore it (a dog, a hexapod,
-      a 7-joint arm, a humanoid or JPL's RoboSimian), or start from a blank one.</p>
+    text: `<p>File &gt; New opens the start screen: load a finished robot any time to explore it (legged robots from a dog
+      to JPL's RoboSimian, a humanoid, and 7-joint, 6-joint and SCARA arms), or start from a blank one.</p>
       <p>The File menu also opens and saves projects as JSON, and exports STEP and URDF.</p>`,
     setup: view('cad'),
   },

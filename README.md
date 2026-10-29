@@ -30,7 +30,7 @@ Then open http://localhost:8000. Three.js loads from the jsDelivr CDN, so you ne
 | `js/menus.js` | The two top bar menus: File (New, Open JSON, Save JSON, Export STEP, Export URDF) and ? (Tutorial, Style). Opens and closes them; the items are ordinary buttons with their own handlers. |
 | `js/styles.js`, `css/theme-*.css` | Style choices in the ? menu: Retro (default), Normal (the Datasheet theme) or Risograph. Each theme is a stylesheet loaded after style.css plus optional 3D colours; the choice is remembered in the browser. |
 | `js/ui.js` | Assembly tree (with a joint slider under each actuator, the search box and Collapse all), inspector forms, status bar, project file dialog |
-| `js/examples.js`, `js/examples/` | Example robots (Robot Dog, Hexapod, 7DOF Arm, Humanoid, RoboSimian) offered on the start screen, each with its saved poses; the first one loads when the page opens. To add one, save it with File > Save JSON, store it as `js/examples/<name>.js` (`export const NAME = { …JSON… };`) and add an entry to `EXAMPLES`. Its start screen picture is `img/examples/<id>.png` (360 × 270, transparent background). |
+| `js/examples.js`, `js/examples/` | Example robots (Robot Dog, Hexapod, Biped, Humanoid, RoboSimian, 7DOF Arm, 6DOF Arm, SCARA) offered on the start screen, each with its saved poses; the first one loads when the page opens. To add one, save it with File > Save JSON, store it as `js/examples/<name>.js` (`export const NAME = { …JSON… };`) and add an entry to `EXAMPLES`. Robots built in code from world positions (Biped, Humanoid, 6DOF Arm, SCARA) use the helpers in `js/examples/build.js`. Its start screen picture is `img/examples/<id>.png` (360 × 270, transparent background). |
 
 ## Model
 
