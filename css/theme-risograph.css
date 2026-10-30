@@ -42,7 +42,7 @@ body {
 .hint { font-size: 12px; }
 
 /* Zine voice: controls and labels in lower case */
-.btn, .segmented button, .tab, .section-title, .eyebrow, .vp-badge, .statusbar, .branch-label, .dh legend {
+.btn, .segmented button, .tab, .section-title, .eyebrow, .statusbar, .branch-label, .dh legend {
   text-transform: lowercase;
 }
 
@@ -67,7 +67,6 @@ body {
 .icon-btn:hover:not(:disabled) { background: var(--accent-soft); color: var(--danger); }
 
 /* ---- Tool bar ---- */
-.toolbar { border-bottom: 2px solid var(--ink); }
 
 /* Toggle groups: the chosen one gets a pink overprint */
 .segmented, .tabs { gap: 4px; padding: 0; background: transparent; border: 0; }
@@ -99,8 +98,6 @@ input[type="range"] { accent-color: var(--accent); }
 
 /* ---- 3D view ---- */
 .viewport { box-shadow: inset 0 0 0 2px var(--ink); }
-.vp-badge { background: var(--bg); border: 0; font: 400 12px var(--font-mono); letter-spacing: 0; color: var(--ink); }
-.vp-badge::before { content: "fig. "; color: var(--accent-ink); }
 .vp-legend, .vp-tools { background: var(--bg); border: 1.5px dashed var(--ink); }
 .vp-hint { font-family: var(--font-mono); color: var(--ink-2); }
 .swatch { border-radius: 0; }

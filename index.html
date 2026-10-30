@@ -32,8 +32,10 @@
     <span class="brand-sep" aria-hidden="true">/</span>
     <input id="project-name" class="project-name" type="text" aria-label="Project name" autocomplete="off">
   </div>
-  <!-- Two menus: File (new, open, save, export) and ? (tutorial, style). js/menus.js opens and closes them. -->
+  <!-- Robot data window, the Examples start screen, then two menus: File (new, open, save, export) and ? (tutorial, style). js/menus.js opens and closes the menus. -->
   <div class="top-actions">
+    <button type="button" class="btn" id="btn-data" title="Jacobians, transforms and joint data for the whole robot">Robot data</button>
+    <button type="button" class="btn" id="btn-examples" title="Open the start screen: load an example or start a blank robot">Examples</button>
     <div class="style-menu menu">
       <button type="button" class="btn" id="btn-menu-file" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File</button>
       <div class="style-list menu-list" id="menu-file" role="menu" aria-label="File" hidden>
@@ -59,24 +61,6 @@
 </header>
 
 <div class="app">
-  <!-- View tools: same columns as the workspace, so they end where the 3D view ends -->
-  <div class="topbar toolbar">
-    <div class="topbar-main">
-      <div class="view-tools" role="toolbar" aria-label="View">
-        <div class="segmented" role="group" aria-label="Display mode">
-          <button type="button" data-view="sim" aria-pressed="false">Simulate</button>
-          <button type="button" data-view="cad" aria-pressed="true">Model</button>
-          <button type="button" data-view="cadfile" aria-pressed="false">CAD</button>
-          <button type="button" data-view="simple" aria-pressed="false">Simplified</button>
-        </div>
-      </div>
-    </div>
-    <!-- Robot data window, top right over the inspector -->
-    <div class="toolbar-side">
-      <button type="button" class="btn" id="btn-data" title="Jacobians, transforms and joint data for the whole robot">Robot data</button>
-    </div>
-  </div>
-
   <main class="workspace">
     <aside class="panel panel-left" aria-label="Assembly">
       <section class="panel-section">
@@ -94,7 +78,13 @@
     </aside>
 
     <div class="viewport" id="viewport">
-      <div class="vp-badge" id="view-label">Model</div>
+      <!-- Display mode, in the corner of the 3D view -->
+      <div class="segmented vp-views" role="group" aria-label="Display mode">
+        <button type="button" data-view="sim" aria-pressed="false">Simulate</button>
+        <button type="button" data-view="cad" aria-pressed="true">Model</button>
+        <button type="button" data-view="cadfile" aria-pressed="false">CAD</button>
+        <button type="button" data-view="simple" aria-pressed="false">Simplified</button>
+      </div>
       <div class="vp-tools" id="tube-toggle" hidden></div>
       <div class="vp-hint" id="vp-hint">Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Click a blue dot to attach a part</div>
       <div class="vp-legend" id="legend"></div>
@@ -155,7 +145,7 @@
   </div>
   <div class="dialog-body" id="data-body"></div>
 </dialog>
-<!-- Start screen: pick an example or a blank robot. Opens after the tutorial on page load, and from File > New. Cards come from js/examples.js. -->
+<!-- Start screen: pick an example or a blank robot. Opens after the tutorial on page load, from the Examples button and from File > New. Cards come from js/examples.js. -->
 <dialog id="start-dialog" class="dialog start-dialog" aria-labelledby="start-title">
   <div class="dialog-head">
     <h2 id="start-title">Start a robot</h2>

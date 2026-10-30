@@ -48,13 +48,12 @@ body { font-size: 14px; }
 .project-name:focus { border-color: var(--ink); }
 /* The two menus are one joined row of cells; File is the accent cell */
 .top-actions { gap: 0; border: 1px solid var(--ink); }
-.top-actions .menu > .btn { min-height: 38px; border: 0; border-right: 1px solid var(--ink); }
+.top-actions > .btn, .top-actions .menu > .btn { min-height: 38px; border: 0; border-right: 1px solid var(--ink); }
 .top-actions .menu:last-of-type > .btn { border-right: 0; }
 #btn-menu-file { background: var(--accent); color: #ffffff; font-weight: 600; }
 #btn-menu-file:hover { background: #083ba8; }
 
 /* ---- Tool bar ---- */
-.toolbar { border-bottom: 1px solid var(--ink); }
 
 /* Toggle groups become underlined tabs */
 .segmented, .tabs { gap: 18px; padding: 0; background: transparent; border: 0; }
@@ -93,9 +92,6 @@ body { font-size: 14px; }
 .joint output { color: var(--ink); }
 
 /* ---- 3D view: a captioned figure ---- */
-.vp-badge { background: transparent; border: 0; padding: 0; font: 400 11.5px var(--font-mono); letter-spacing: 0; text-transform: none; color: var(--muted); }
-.vp-badge::before { content: "Fig. 1 — "; }
-.vp-badge::after { content: " view"; }
 .vp-hint { font-family: var(--font-mono); font-size: 11px; }
 .vp-legend, .vp-tools { border: 1px solid var(--ink); background: #ffffff; }
 .swatch { border-radius: 0; }

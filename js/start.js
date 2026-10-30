@@ -1,5 +1,6 @@
 // Start screen: a gallery of the example robots plus a blank one. It opens after the tutorial
-// closes when the site first opens, and from File > New. Picking a card replaces the robot.
+// closes when the site first opens, from the Examples button and from File > New. Picking a card
+// replaces the robot.
 import * as store from './robot.js';
 import { state } from './robot.js';
 import { EXAMPLES } from './examples.js';
@@ -33,6 +34,7 @@ export function initStart(viewer) {
     $('#start-note').textContent = parts > 1 ? `Picking one replaces “${state.name}”. Close this window to keep it.` : '';
     dlg.showModal();
   };
+  $('#btn-examples').addEventListener('click', open);
   $('#btn-new').addEventListener('click', open);
   return { open };
 }

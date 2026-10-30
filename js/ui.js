@@ -51,7 +51,6 @@ const POSE_FIELDS = [['x', 'x', 'len'], ['y', 'y', 'len'], ['z', 'z', 'len'], ['
 const LENGTH_KEYS = new Set(['a', 'd', 'x', 'y', 'z']);
 const ROD_FIELDS = [['lon', 'Longitude', '°'], ['lat', 'Latitude', '°']];
 const POSE_FORMULA = 'Trans(x, y, z) · Rz(γ) · Ry(β) · Rx(α)';
-const VIEW_LABEL = { sim: 'Simulate', cad: 'Model', cadfile: 'CAD', simple: 'Simplified' };
 const TYPE_LABEL = { base: 'Base', actuator: 'Actuator', link: 'Link' };
 const CHIP = { base: ['B', '#7b8592'], link: ['L', '#8a97a8'] };
 
@@ -164,7 +163,6 @@ function bindTopbar() {
 
 function renderViewChrome() {
   $$('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
-  $('#view-label').textContent = VIEW_LABEL[state.view];
   $('#vp-hint').innerHTML = state.view === 'sim'
     ? 'Drag a part to move the joints &middot; Drag empty space to orbit<br>Right-drag to pan &middot; Scroll to zoom'
     : 'Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Click a blue dot to attach a part';
