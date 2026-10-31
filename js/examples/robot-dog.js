@@ -324,6 +324,16 @@ export const ROBOT_DOG = {
     { "name": "Crouch", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -75, "amvg281qfj": 150, "amvg1ugoj2": 0, "amvg1w1317": 75, "amvg26757g": -150, "amvg1upky3": 0, "amvg1vfcl6": 75, "amvg211bjd": -150, "amvg1uw1a4": 0, "amvg1v6xf5": -75, "amvg1ydfta": 150 } },
     { "name": "Tall", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -45, "amvg281qfj": 80, "amvg1ugoj2": 0, "amvg1w1317": 45, "amvg26757g": -80, "amvg1upky3": 0, "amvg1vfcl6": 45, "amvg211bjd": -80, "amvg1uw1a4": 0, "amvg1v6xf5": -45, "amvg1ydfta": 80 } },
     { "name": "Sit", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -45, "amvg281qfj": 80, "amvg1ugoj2": 0, "amvg1w1317": 45, "amvg26757g": -80, "amvg1upky3": 0, "amvg1vfcl6": 80, "amvg211bjd": -165, "amvg1uw1a4": 0, "amvg1v6xf5": -80, "amvg1ydfta": 165 } },
-    { "name": "Shake", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -61, "amvg281qfj": 115, "amvg1ugoj2": 0, "amvg1w1317": 125, "amvg26757g": -55, "amvg1upky3": 0, "amvg1vfcl6": 61, "amvg211bjd": -115, "amvg1uw1a4": 0, "amvg1v6xf5": -61, "amvg1ydfta": 115 } }
+    { "name": "Shake", "q": { "amvg1udyg1": 0, "amvg1w8hj8": -61, "amvg281qfj": 115, "amvg1ugoj2": 0, "amvg1w1317": 125, "amvg26757g": -55, "amvg1upky3": 0, "amvg1vfcl6": 61, "amvg211bjd": -115, "amvg1uw1a4": 0, "amvg1v6xf5": -61, "amvg1ydfta": 115 } },
+    {"name": "Walk 1", "q": {"amvg1udyg1": 0, "amvg1w8hj8": -75, "amvg281qfj": 117.5, "amvg1ugoj2": 0, "amvg1w1317": 45, "amvg26757g": -107.5, "amvg1upky3": 0, "amvg1vfcl6": 75, "amvg211bjd": -117.5, "amvg1uw1a4": 0, "amvg1v6xf5": -45, "amvg1ydfta": 107.5}},
+    {"name": "Walk 2", "q": {"amvg1udyg1": 0, "amvg1w8hj8": -61, "amvg281qfj": 115, "amvg1ugoj2": 0, "amvg1w1317": 68.5, "amvg26757g": -132, "amvg1upky3": 0, "amvg1vfcl6": 61, "amvg211bjd": -115, "amvg1uw1a4": 0, "amvg1v6xf5": -68.5, "amvg1ydfta": 132}},
+    {"name": "Walk 3", "q": {"amvg1udyg1": 0, "amvg1w8hj8": -45, "amvg281qfj": 107.5, "amvg1ugoj2": 0, "amvg1w1317": 75, "amvg26757g": -117.5, "amvg1upky3": 0, "amvg1vfcl6": 45, "amvg211bjd": -107.5, "amvg1uw1a4": 0, "amvg1v6xf5": -75, "amvg1ydfta": 117.5}},
+    {"name": "Walk 4", "q": {"amvg1udyg1": 0, "amvg1w8hj8": -68.5, "amvg281qfj": 132, "amvg1ugoj2": 0, "amvg1w1317": 61, "amvg26757g": -115, "amvg1upky3": 0, "amvg1vfcl6": 68.5, "amvg211bjd": -132, "amvg1uw1a4": 0, "amvg1v6xf5": -61, "amvg1ydfta": 115}}
+  ],
+  "animations": [
+    {"name": "Walk", "loop": true, "speed": 100, "pause": false, "walk": true, "steps": [{"pose": "Walk 1", "hold": 0}, {"pose": "Walk 2", "hold": 0}, {"pose": "Walk 3", "hold": 0}, {"pose": "Walk 4", "hold": 0}]},
+    {"name": "Bounce", "loop": true, "speed": 50, "pause": true, "steps": [{"pose": "Stand", "hold": 0}, {"pose": "Crouch", "hold": 0}, {"pose": "Tall", "hold": 0}]},
+    {"name": "Sit", "loop": true, "speed": 25, "pause": true, "steps": [{"pose": "Stand", "hold": 0.5}, {"pose": "Sit", "hold": 1}]},
+    {"name": "Shake", "loop": true, "speed": 50, "pause": true, "steps": [{"pose": "Stand", "hold": 0.3}, {"pose": "Shake", "hold": 0.6}]}
   ]
 };

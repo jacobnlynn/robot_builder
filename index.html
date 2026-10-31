@@ -32,14 +32,14 @@
     <span class="brand-sep" aria-hidden="true">/</span>
     <input id="project-name" class="project-name" type="text" aria-label="Project name" autocomplete="off">
   </div>
-  <!-- Robot data window, the Examples start screen, then two menus: File (new, open, save, export) and ? (tutorial, style). js/menus.js opens and closes the menus. -->
+  <!-- Robot data window, the Examples start screen, New (a blank robot), then two menus: Import/Export (open, save, export) and ? (tutorial, style). js/menus.js opens and closes the menus. -->
   <div class="top-actions">
     <button type="button" class="btn" id="btn-data" title="Jacobians, transforms and joint data for the whole robot">Robot data</button>
-    <button type="button" class="btn" id="btn-examples" title="Open the start screen: load an example or start a blank robot">Examples</button>
+    <button type="button" class="btn" id="btn-examples" title="Open the examples: legged robots, arms and simple mechanisms">Examples</button>
+    <button type="button" class="btn" id="btn-new" title="Start a blank robot: just the base">New</button>
     <div class="style-menu menu">
-      <button type="button" class="btn" id="btn-menu-file" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">File</button>
-      <div class="style-list menu-list" id="menu-file" role="menu" aria-label="File" hidden>
-        <button type="button" class="style-option" role="menuitem" id="btn-new"><span class="style-name">New&hellip;</span><span class="style-note">Start from an example or a blank robot</span></button>
+      <button type="button" class="btn" id="btn-menu-file" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">Import/Export</button>
+      <div class="style-list menu-list" id="menu-file" role="menu" aria-label="Import/Export" hidden>
         <button type="button" class="style-option" role="menuitem" id="btn-import"><span class="style-name">Open JSON&hellip;</span><span class="style-note">Load a project from a .json file</span></button>
         <button type="button" class="style-option" role="menuitem" id="btn-file"><span class="style-name">Save JSON&hellip;</span><span class="style-note">Copy or download this robot as JSON</span></button>
         <div class="menu-sep" role="separator"></div>
@@ -78,12 +78,16 @@
     </aside>
 
     <div class="viewport" id="viewport">
-      <!-- Display mode, in the corner of the 3D view -->
+      <!-- Display mode, in the corner of the 3D view, and Walk (legged robots only: plays the walk in Animate; js/animate.js) -->
+      <div class="vp-bar">
       <div class="segmented vp-views" role="group" aria-label="Display mode">
         <button type="button" data-view="sim" aria-pressed="false">Simulate</button>
+        <button type="button" data-view="anim" aria-pressed="false">Animate</button>
         <button type="button" data-view="cad" aria-pressed="true">Model</button>
         <button type="button" data-view="cadfile" aria-pressed="false">CAD</button>
         <button type="button" data-view="simple" aria-pressed="false">Simplified</button>
+      </div>
+      <button type="button" class="btn vp-walk" id="btn-walk" aria-pressed="false" title="Play this robot's walk" hidden>&#9654; Walk</button>
       </div>
       <div class="vp-tools" id="tube-toggle" hidden></div>
       <div class="vp-hint" id="vp-hint">Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Click a blue dot to attach a part</div>
@@ -145,10 +149,10 @@
   </div>
   <div class="dialog-body" id="data-body"></div>
 </dialog>
-<!-- Start screen: pick an example or a blank robot. Opens after the tutorial on page load, from the Examples button and from File > New. Cards come from js/examples.js. -->
+<!-- Start screen: pick an example, by category. Opens after the tutorial on page load and from the Examples button. Cards come from js/examples.js. -->
 <dialog id="start-dialog" class="dialog start-dialog" aria-labelledby="start-title">
   <div class="dialog-head">
-    <h2 id="start-title">Start a robot</h2>
+    <h2 id="start-title">Examples</h2>
     <button type="button" class="icon-btn" id="start-close" aria-label="Close">&times;</button>
   </div>
   <div class="dialog-body">

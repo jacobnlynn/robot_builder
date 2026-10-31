@@ -1,7 +1,7 @@
 // Example: biped, walking legs only. A pelvis on the base (at the world origin) carries two legs
 // of six joints each: hip yaw, hip roll and hip pitch, knee, ankle pitch and ankle roll. Each foot
 // is a link with a ball at the toe and one at the heel.
-import { builder, v3, DOWN, FWD, BACK, at } from './build.js';
+import { builder, animation, v3, DOWN, FWD, BACK, at } from './build.js';
 
 const { motor, link, robot } = builder();
 const SIDES = [['left', 1], ['right', -1]];
@@ -46,4 +46,16 @@ export const BIPED = robot('Biped', 'pelvis', [
   legs('Kick', {}, { hip_pitch: -70, knee: 10, ankle_pitch: 30 }),
   legs('Wide stance', { hip_roll: 15, ankle_roll: -15 }),
   legs('Turn', { hip_yaw: 30 }, { hip_yaw: -30 }),
+  // Walk: a gait cycle in four poses, worked out by inverse kinematics so feet on the ground stay level and
+  // move back while the others lift and swing forward (the body is fixed, so it walks on the spot).
+  legs('Walk 1', { hip_pitch: -30.5, knee: 42, ankle_pitch: -12 }, { hip_pitch: -12, knee: 42.5, ankle_pitch: -30 }),
+  legs('Walk 2', { hip_pitch: -23, knee: 46, ankle_pitch: -23 }, { hip_pitch: -36, knee: 72.5, ankle_pitch: -36 }),
+  legs('Walk 3', { hip_pitch: -12, knee: 42.5, ankle_pitch: -30 }, { hip_pitch: -30.5, knee: 42, ankle_pitch: -12 }),
+  legs('Walk 4', { hip_pitch: -36, knee: 72.5, ankle_pitch: -36 }, { hip_pitch: -23, knee: 46, ankle_pitch: -23 }),
+], [], [
+  // Animations (the Animate view).
+  animation('Walk', ['Walk 1', 'Walk 2', 'Walk 3', 'Walk 4'], { pause: false, speed: 100, walk: true }),
+  animation('Squat', ['Stand', ['Crouch', 0.5]], { speed: 25 }),
+  animation('Kick', [['Stand', 0.5], 'Kick']),
+  animation('Look around', [['Stand', 0.3], ['Turn', 0.5], ['Wide stance', 0.3]], { speed: 25 }),
 ]);

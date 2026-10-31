@@ -105,7 +105,7 @@ export function matrixToDH(m, convention = DH_CONVENTION) {
 // ---- Reference frames for pose-entered link outputs ----
 // A ref is 'input' (the port the link sits on), 'world', or 'nodeId:outputIndex'.
 // A link is rigid, so an output measured from some other frame is solved once with
-// every joint at 0° (the home pose) and then stays fixed relative to the link's input.
+// every joint at 0°, passive ones too (the home pose), and then stays fixed relative to the link's input.
 
 /**
  * Solves every link's local output transforms.
@@ -226,12 +226,26 @@ export function rodDirection({ lon = 0, lat = 90 } = DEFAULT_ROD) {
 }
 
 /**
+ * Rotation of a passive joint on a link output: a hinge turns q about the output's z axis, a ball
+ * turns Rz(z) · Ry(y) · Rx(x). Identity for any other output.
+ */
+export function passiveRotation(o) {
+  if (o.end === 'hinge') return new THREE.Matrix4().makeRotationZ((o.q ?? 0) * DEG);
+  if (o.end !== 'ball') return new THREE.Matrix4();
+  const { x = 0, y = 0, z = 0 } = o.ball ?? {};
+  return new THREE.Matrix4().makeRotationZ(z * DEG)
+    .multiply(new THREE.Matrix4().makeRotationY(y * DEG))
+    .multiply(new THREE.Matrix4().makeRotationX(x * DEG));
+}
+
+/**
  * Each output is its own transform from the shared input: D-H, or a pose (solved by solveLinks,
- * passed in as `solved`). A pose output's rod leaves the input along its rod direction, bends at
+ * passed in as `solved`), then turned by its passive joint if it is a ball or hinge. A pose output's rod leaves the input along its rod direction, bends at
  * the point on that line nearest the output, and runs straight to the output.
  */
 function linkKinematics(node, solved) {
-  const outputs = node.outputs.map((o, i) => solved?.[i] ?? (node.spec === 'pose' ? poseToMatrix(o.pose) : dhToMatrix(o.dh)));
+  const outputs = node.outputs.map((o, i) => (solved?.[i]?.clone() ?? (node.spec === 'pose' ? poseToMatrix(o.pose) : dhToMatrix(o.dh)))
+    .multiply(passiveRotation(o)));
   return {
     outputs,
     elbows: node.outputs.map((o, i) => {
@@ -249,10 +263,16 @@ export function localKinematics(node, solved) {
 }
 
 /**
- * Walk the robot tree from the base, composing transforms.
+ * Walk the robot tree from the base, composing transforms. If the robot has closed loops, their
+ * passive joints are first turned so every loop closes (closeLoops).
  * Returns { [nodeId]: { input, outputs[], local } } with input/outputs in world coordinates.
  */
 export function forwardKinematics(robot, solved = solveLinks(robot)) {
+  if (robot.loops?.length) closeLoops(robot, solved);
+  return treeKinematics(robot, solved);
+}
+
+function treeKinematics(robot, solved) {
   const frames = {};
   const visit = (id, input) => {
     const node = robot.nodes[id];
@@ -263,6 +283,126 @@ export function forwardKinematics(robot, solved = solveLinks(robot)) {
   };
   visit(robot.rootId, new THREE.Matrix4());
   return frames;
+}
+
+// ---- Closed loops ----
+// A loop joins two open ball or hinge outputs (robot.loops: [{ a: {nodeId, index}, b }]). The
+// robot is still a tree; the loop is a constraint that the two outputs meet. The passive joints on
+// the tree path between them are the unknowns, solved (damped least squares, from their current
+// angles so the mechanism moves smoothly) so that the outputs share a point, and for two hinges
+// also share an axis. The actuators drive the loop; the joints at the two joined outputs only turn
+// about their own axis, so they don't take part.
+
+const AXIS_WEIGHT = 100; // mm per radian of hinge-axis misalignment, to weigh it against position
+const LOOP_TOL = 0.005; // mm: closed
+const LOOP_ITERATIONS = 60;
+
+/** The unknowns: passive joints on the tree paths between each loop's two outputs, as { o, key }. */
+export function loopUnknowns(robot) {
+  const ports = new Map(); // 'nodeId:index' → { o, n }
+  const upFrom = (id) => {
+    const path = [];
+    for (let n = robot.nodes[id]; n?.parent; n = robot.nodes[n.parent.nodeId]) path.push(`${n.parent.nodeId}:${n.parent.index}`);
+    return path;
+  };
+  for (const { a, b } of robot.loops ?? []) {
+    const pa = upFrom(a.nodeId), pb = upFrom(b.nodeId);
+    // Drop the shared part of the two paths (from where they meet up to the base).
+    while (pa.length && pb.length && pa.at(-1) === pb.at(-1)) { pa.pop(); pb.pop(); }
+    for (const key of [...pa, ...pb]) {
+      const [id, i] = key.split(':');
+      const o = robot.nodes[id]?.outputs?.[Number(i)];
+      if (o?.end === 'hinge' || o?.end === 'ball') ports.set(key, o);
+    }
+  }
+  const unknowns = [];
+  for (const [port, o] of ports) {
+    if (o.end === 'hinge') unknowns.push({ o, key: 'q', port });
+    else for (const k of ['x', 'y', 'z']) unknowns.push({ o, key: k, port });
+  }
+  return unknowns;
+}
+
+const getAngle = (u) => (u.key === 'q' ? u.o.q ?? 0 : u.o.ball?.[u.key] ?? 0);
+const setAngle = (u, v) => { if (u.key === 'q') u.o.q = v; else u.o.ball = { ...u.o.ball, [u.key]: v }; };
+
+/** How far every loop is from closing: position gaps (mm) and, between two hinges, axis misalignment. */
+function loopResidual(robot, solved) {
+  const frames = treeKinematics(robot, solved);
+  const r = [];
+  let gap = 0;
+  for (const { a, b } of robot.loops) {
+    const A = frames[a.nodeId]?.outputs[a.index], B = frames[b.nodeId]?.outputs[b.index];
+    if (!A || !B) continue;
+    const ea = A.elements, eb = B.elements;
+    const d = [ea[12] - eb[12], ea[13] - eb[13], ea[14] - eb[14]];
+    r.push(...d);
+    gap = Math.max(gap, Math.hypot(...d));
+    if (robot.nodes[a.nodeId].outputs[a.index].end === 'hinge' && robot.nodes[b.nodeId].outputs[b.index].end === 'hinge') {
+      const za = new THREE.Vector3(ea[8], ea[9], ea[10]), zb = new THREE.Vector3(eb[8], eb[9], eb[10]);
+      r.push(...za.cross(zb).multiplyScalar(AXIS_WEIGHT).toArray()); // zero when parallel (either way round)
+    }
+  }
+  return { r, gap };
+}
+
+/** Solve A x = y for a small dense system (Gaussian elimination with pivoting). */
+function solveSmall(A, y) {
+  const n = y.length, M = A.map((row, i) => [...row, y[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let i = c + 1; i < n; i++) if (Math.abs(M[i][c]) > Math.abs(M[p][c])) p = i;
+    [M[c], M[p]] = [M[p], M[c]];
+    if (Math.abs(M[c][c]) < 1e-12) continue;
+    for (let i = c + 1; i < n; i++) {
+      const f = M[i][c] / M[c][c];
+      for (let k = c; k <= n; k++) M[i][k] -= f * M[c][k];
+    }
+  }
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    let s = M[i][n];
+    for (let k = i + 1; k < n; k++) s -= M[i][k] * x[k];
+    x[i] = Math.abs(M[i][i]) < 1e-12 ? 0 : s / M[i][i];
+  }
+  return x;
+}
+
+/**
+ * Turn the loops' passive joints until every loop closes (or as close as it can get). Writes the
+ * angles into the outputs and sets robot.loopGap (mm, the widest gap left; 0 when all closed).
+ */
+export function closeLoops(robot, solved = solveLinks(robot)) {
+  const unknowns = loopUnknowns(robot);
+  let { r, gap } = loopResidual(robot, solved);
+  const cost = (v) => v.reduce((s, x) => s + x * x, 0);
+  let c = cost(r), lambda = 1e-3;
+  for (let it = 0; it < LOOP_ITERATIONS && unknowns.length && Math.sqrt(c) > LOOP_TOL; it++) {
+    // Jacobian by finite differences (residual per degree).
+    const x0 = unknowns.map(getAngle), h = 1e-3;
+    const J = unknowns.map((u, j) => {
+      setAngle(u, x0[j] + h);
+      const rj = loopResidual(robot, solved).r;
+      setAngle(u, x0[j]);
+      return rj.map((v, k) => (v - r[k]) / h);
+    }); // J[j] = column j
+    const n = unknowns.length;
+    const JtJ = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, k) => J[i].reduce((s, v, m) => s + v * J[k][m], 0)));
+    const Jtr = J.map((col) => col.reduce((s, v, m) => s + v * r[m], 0));
+    let improved = false;
+    for (let tries = 0; tries < 8 && !improved; tries++) {
+      const A = JtJ.map((row, i) => row.map((v, k) => v + (i === k ? lambda * (JtJ[i][i] + 1e-6) : 0)));
+      const dx = solveSmall(A, Jtr.map((v) => -v));
+      unknowns.forEach((u, j) => setAngle(u, x0[j] + Math.max(-30, Math.min(30, dx[j]))));
+      const next = loopResidual(robot, solved);
+      if (cost(next.r) < c) { ({ r, gap } = next); c = cost(r); lambda = Math.max(1e-7, lambda / 3); improved = true; }
+      else { unknowns.forEach((u, j) => setAngle(u, x0[j])); lambda *= 10; }
+    }
+    if (!improved) break;
+  }
+  // Keep the angles tidy: within ±180°.
+  for (const u of unknowns) setAngle(u, ((getAngle(u) + 540) % 360) - 180);
+  robot.loopGap = gap < 0.05 ? 0 : gap;
 }
 
 // ---- Gear ratio helpers ----

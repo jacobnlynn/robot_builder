@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES } from './constants.js';
-import { isCapped } from './robot.js';
+import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES, PASSIVE } from './constants.js';
+import { isCapped, isPassive, isMotionView, loopAt, node as partById } from './robot.js';
 
 // Robotics convention: Z is up. Must be set before any camera or light is created.
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
@@ -55,6 +55,19 @@ function ball(p, radius, material) {
   return m;
 }
 
+/** True when a link sits on a passive joint (a ball or hinge output), so it has no input connector. */
+const onPassive = (n) => Boolean(n.parent) && isPassive(partById(n.parent.nodeId), n.parent.index);
+
+/**
+ * Small marker for a passive joint on output frame m: a ball, or a pin along z (the hinge axis).
+ * `scale` shrinks it for the Simplified view.
+ */
+function passiveMarker(o, m, material, scale = 1) {
+  if (o.end === 'ball') return ball(new THREE.Vector3().setFromMatrixPosition(m), PASSIVE.ballRadius * scale, material);
+  const h = PASSIVE.hingeLength * scale;
+  return mesh(cylinderZ(PASSIVE.hingeRadius * scale, h, -h / 2), material, m);
+}
+
 function surface(color, selected) {
   return new THREE.MeshStandardMaterial({
     color,
@@ -95,16 +108,19 @@ export function buildCadPart(node, kin, selected = false) {
   } else if (node.type === 'link') {
     const mat = surface(FAMILY_COLORS.link, selected);
     const t = LINK.flangeThickness;
-    g.add(mesh(cylinderZ(LINK.flangeRadius * 0.8, t + 2), mat)); // boss on the parent's flange
+    if (!onPassive(node)) g.add(mesh(cylinderZ(LINK.flangeRadius * 0.8, t + 2), mat)); // boss on the parent's flange
     g.add(ball(ORIGIN, LINK.radius, mat));
-    node.outputs.forEach((_, i) => {
+    node.outputs.forEach((o, i) => {
       const elbow = kin.elbows[i];
       const end = new THREE.Vector3().setFromMatrixPosition(kin.outputs[i]);
       add(g, rod(ORIGIN, elbow, LINK.radius, mat));
       add(g, rod(elbow, end, LINK.radius, mat));
       g.add(ball(elbow, LINK.radius, mat));
-      if (isCapped(node, i)) g.add(ball(end, node.outputs[i].sphere, mat));
-      else {
+      if (isCapped(node, i)) g.add(ball(end, o.sphere, mat));
+      else if (isPassive(node, i)) {
+        g.add(ball(end, LINK.radius, mat));
+        g.add(passiveMarker(o, kin.outputs[i], surface(PASSIVE.color, selected)));
+      } else {
         g.add(ball(end, LINK.radius, mat));
         g.add(mesh(cylinderZ(LINK.flangeRadius, t, -t), mat, kin.outputs[i]));
       }
@@ -282,14 +298,17 @@ function buildShellPart(node, kin, selected = false) {
   if (node.type === 'link') {
     const g = new THREE.Group();
     if (!node.parent) return g; // the base is the world anchor; nothing to draw
+    // Passive joints have no CAD model yet: they are drawn as their small markers.
+    const joints = () => kin.outputs.forEach((m, i) => { if (isPassive(node, i)) g.add(passiveMarker(node.outputs[i], m, surface(PASSIVE.color, selected))); });
     const filled = hooks.linkFill?.(node, kin);
-    if (filled) { g.add(shellMesh(filled, FAMILY_COLORS.link, new THREE.Matrix4(), selected)); return g; }
+    if (filled) { g.add(shellMesh(filled, FAMILY_COLORS.link, new THREE.Matrix4(), selected)); joints(); return g; }
     const input = cadGeometry('input'), output = cadGeometry('output');
-    if (input) g.add(shellMesh(input, FAMILY_COLORS.link, new THREE.Matrix4(), selected));
+    if (input && !onPassive(node)) g.add(shellMesh(input, FAMILY_COLORS.link, new THREE.Matrix4(), selected));
     kin.outputs.forEach((m, i) => {
       if (isCapped(node, i)) g.add(ball(new THREE.Vector3().setFromMatrixPosition(m), node.outputs[i].sphere, surface(FAMILY_COLORS.link, selected)));
-      else if (output) g.add(shellMesh(output, FAMILY_COLORS.link, m, selected));
+      else if (!isPassive(node, i) && output) g.add(shellMesh(output, FAMILY_COLORS.link, m, selected));
     });
+    joints();
     return g;
   }
   if (node.type !== 'actuator') return new THREE.Group();
@@ -317,7 +336,7 @@ function buildShellPart(node, kin, selected = false) {
   return g;
 }
 
-const BUILDERS = { cad: buildCadPart, sim: buildCadPart, cadfile: buildShellPart };
+const BUILDERS = { cad: buildCadPart, sim: buildCadPart, anim: buildCadPart, cadfile: buildShellPart };
 const builderFor = (view) => BUILDERS[view] ?? buildSimplePart;
 
 /** Simplified mode: cylinders for joints, thin rods for links. */
@@ -338,6 +357,7 @@ function buildSimplePart(node, kin, selected = false) {
       add(g, rod(elbow, end, 2.5, line));
       g.add(ball(elbow, 2.5, line));
       if (isCapped(node, i)) g.add(ball(end, node.outputs[i].sphere, surface(selected ? COLORS.select : COLORS.simpleJoint, false)));
+      else if (isPassive(node, i)) g.add(passiveMarker(node.outputs[i], kin.outputs[i], surface(selected ? COLORS.select : PASSIVE.color, false), 0.6));
     });
   }
   return g;
@@ -356,7 +376,7 @@ function addFramesAndPorts(root, id, node, kin, state, pickables) {
       axes.renderOrder = 2;
       root.add(axes);
     }
-    if (node.children[i] || isCapped(node, i) || state.view === 'sim') return;
+    if (node.children[i] || isCapped(node, i) || loopAt(id, i) || isMotionView(state.view)) return;
     const sel = state.selection;
     const active = sel?.kind === 'port' && sel.nodeId === id && sel.index === i;
     const marker = new THREE.Group();
@@ -474,7 +494,7 @@ export function createViewer(container, { onPick }) {
     const build = builderFor(state.view);
     for (const [id, f] of Object.entries(frames)) {
       const node = state.robot.nodes[id];
-      const selected = state.view !== 'sim' && state.selection?.kind === 'node' && state.selection.nodeId === id;
+      const selected = !isMotionView(state.view) && state.selection?.kind === 'node' && state.selection.nodeId === id;
       const part = build(node, f.local, selected);
       part.traverse((o) => {
         if (!o.isMesh) return;
@@ -598,7 +618,7 @@ export function createViewer(container, { onPick }) {
   renderer.domElement.addEventListener('pointerup', (e) => {
     if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
     down = null;
-    if (current.state?.view === 'sim') return; // nothing is selected while simulating
+    if (isMotionView(current.state?.view)) return; // nothing is selected while simulating or animating
     rayAt(e.clientX, e.clientY);
     const hits = ray.intersectObjects(pickables, false).filter((h) => isShown(h.object));
     const hit = hits.find((h) => h.object.userData.pick.kind === 'port') ?? hits[0];

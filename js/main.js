@@ -5,6 +5,7 @@ import { EXAMPLES } from './examples.js';
 import { initTutorial } from './tutorial.js';
 import { initStyles } from './styles.js';
 import { initPoses } from './poses.js';
+import { initAnimate } from './animate.js';
 import { initMenus } from './menus.js';
 import { initStart } from './start.js';
 import './linkfill.js'; // trial: filled links in the CAD tab and their STEP solids (delete this line to remove)
@@ -15,7 +16,9 @@ const viewer = createViewer(document.getElementById('viewport'), {
 initUI(viewer);
 // Saved poses, listed above the Assembly list.
 initPoses(viewer);
-// Top bar menus (File, ?) and the start screen (File > New).
+// Animations: the Animate view's panel plays a series of saved poses.
+initAnimate(viewer);
+// Top bar menus (Import/Export, ?) and the start screen (the Examples button).
 initMenus();
 const start = initStart(viewer);
 // The module STEP files load when first needed; redraw (and refresh the legend) as each arrives.

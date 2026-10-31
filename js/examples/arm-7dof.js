@@ -215,5 +215,10 @@ export const ARM_7DOF = {
     { "name": "Pick left", "q": { "amvge2dwc1": 90, "amvge2kgn2": 45, "amvge4qfp5": 0, "amvge6dyy6": 70, "amvge7ccc9": 0, "amvge7ne1a": 60, "amvge8j71d": 0 } },
     { "name": "Twist", "q": { "amvge2dwc1": -40, "amvge2kgn2": 30, "amvge4qfp5": 60, "amvge6dyy6": 60, "amvge7ccc9": -60, "amvge7ne1a": 45, "amvge8j71d": 90 } },
     { "name": "Folded", "q": { "amvge2dwc1": 0, "amvge2kgn2": -10, "amvge4qfp5": 0, "amvge6dyy6": 120, "amvge7ccc9": 0, "amvge7ne1a": -110, "amvge8j71d": 0 } }
+  ],
+  "animations": [
+    {"name": "Pick and place", "loop": true, "speed": 50, "pause": true, "steps": [{"pose": "Ready", "hold": 0.3}, {"pose": "Reach", "hold": 0}, {"pose": "Pick left", "hold": 0.5}, {"pose": "Ready", "hold": 0}]},
+    {"name": "Wrist twist", "loop": true, "speed": 50, "pause": true, "steps": [{"pose": "Ready", "hold": 0.3}, {"pose": "Twist", "hold": 0.5}]},
+    {"name": "Fold away", "loop": true, "speed": 50, "pause": true, "steps": [{"pose": "Home", "hold": 0.5}, {"pose": "Folded", "hold": 0.5}]}
   ]
 };

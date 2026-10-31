@@ -79,12 +79,22 @@ const legPose = (name, angles) => ({
     return [[`${key}_hip`, hip], [`${key}_upper`, upper], [`${key}_lower`, lower]];
   })),
 });
+// Walk: a tripod gait in four poses (front, back left and back right together, then the other three),
+// worked out by inverse kinematics so feet on the ground stay level and move back while the other
+// tripod lifts and swings forward.
+const WALK = [
+  { front: [-6.5, -88, -44.5], front_left: [40, -62.5, -76], back_left: [-21.5, -80, -74.5], back: [-6.5, -88, -44.5], back_right: [40, -62.5, -76], front_right: [-21.5, -80, -74.5] },
+  { front: [0, -75, -67], front_left: [-1.5, -64, -70], back_left: [0, -75, -67], back: [-1.5, -64, -70], back_right: [0, -75, -67], front_right: [-1.5, -64, -70] },
+  { front: [7.5, -64, -86], front_left: [-26, -90.5, -54], back_left: [32, -74, -55.5], back: [7.5, -64, -86], back_right: [-26, -90.5, -54], front_right: [32, -74, -55.5] },
+  { front: [-1.5, -64, -70], front_left: [0, -75, -67], back_left: [-1.5, -64, -70], back: [0, -75, -67], back_right: [-1.5, -64, -70], front_right: [0, -75, -67] },
+];
 const poses = [
   legPose('Stand', () => [0, UPPER_Q, LOWER_Q]),
   legPose('Tall', () => TALL),
   legPose('Wide', () => [0, -100, -35]),
   legPose('Tripod step', (key) => (TRIPOD.has(key) ? [15, -55, -75] : [-15, -100, -52])),
   legPose('Wave', (key) => (key === 'front' ? [0, -15, -65] : [0, UPPER_Q, LOWER_Q])),
+  ...WALK.map((w, i) => legPose(`Walk ${i + 1}`, (key) => w[key])),
 ];
 
 export const HEXAPOD = {
@@ -96,4 +106,10 @@ export const HEXAPOD = {
   rootId: 'base',
   nodes,
   poses,
+  // Animations (the Animate view): steps name poses; hold is in seconds, speed in % of top speed.
+  animations: [
+    { name: 'Walk', loop: true, speed: 100, pause: false, walk: true, steps: [1, 2, 3, 4].map((i) => ({ pose: `Walk ${i}`, hold: 0 })) },
+    { name: 'Wave', loop: true, speed: 50, pause: true, steps: [{ pose: 'Stand', hold: 0.3 }, { pose: 'Wave', hold: 0.6 }] },
+    { name: 'Stretch', loop: true, speed: 25, pause: true, steps: [{ pose: 'Stand', hold: 0.3 }, { pose: 'Tall', hold: 0.3 }, { pose: 'Wide', hold: 0.3 }] },
+  ],
 };

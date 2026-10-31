@@ -5,6 +5,8 @@
 //  - Links attached straight to each other (no motor between) are rigid together, so they print
 //    as one part: one input connector, the outputs of the last link, and pipes routed from the
 //    first input to those outputs. The first link of the run draws and exports the whole part.
+//  - A passive joint (a ball or hinge output) ends a part: each side of it gets a small ball where
+//    the joint goes (no CAD model for the joints yet), and the next link starts a new part there.
 //  - Each pipe end is fused on with a tapered collar: a cone from the full connector face to the
 //    pipe, sunk into the connector's solid wall, so it is physically joined rather than touching.
 //  - Then the volume the motor before the part sweeps as it turns is cut away, as is the envelope of
@@ -14,10 +16,10 @@
 // blocks loading WebAssembly from a CDN); stepexport.js builds the same plan as a STEP solid.
 // To remove the trial, delete the `import './linkfill.js'` line in main.js.
 import * as THREE from 'three';
-import { state, node, isCapped, emit } from './robot.js';
+import { state, node, isCapped, isPassive, emit } from './robot.js';
 import { localKinematics, forwardKinematics, rodDirection } from './kinematics.js';
 import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
-import { LINK } from './constants.js';
+import { LINK, PASSIVE } from './constants.js';
 
 const MANIFOLD_URL = new URL('../vendor/manifold-3d-2.5.1/manifold.js', import.meta.url).href;
 export const PIPE = { radius: LINK.radius }; // same as the Model view's rods
@@ -79,9 +81,12 @@ function actuatorPoints(n) {
 
 const isLink = (n) => n?.type === 'link' && n.parent; // the base is the world anchor, not a part
 
+/** True when link n is fixed straight onto the link before it (not through a passive joint). */
+const rigidOnLink = (n) => isLink(node(n.parent.nodeId)) && !isPassive(node(n.parent.nodeId), n.parent.index);
+
 /** The first link of the run of links this one belongs to. */
 function partRoot(n) {
-  while (isLink(node(n.parent.nodeId))) n = node(n.parent.nodeId);
+  while (rigidOnLink(n)) n = node(n.parent.nodeId);
   return n;
 }
 
@@ -99,12 +104,18 @@ function describePart(root) {
       // The pipe leaves along the first link's rod for an XYZ link, straight up for a D-H one.
       const dir = rise ?? (x.spec === 'pose' ? rodDirection(o.rod).normalize() : new THREE.Vector3(0, 0, 1));
       const child = x.children[i] && node(x.children[i]);
-      if (isLink(child)) return visit(child, dir);
-      outputs.push({ m: toRoot.clone().multiply(frames[x.id].outputs[i]), sphere: isCapped(x, i) ? o.sphere : 0, child, dir });
+      if (isLink(child) && !isPassive(x, i)) return visit(child, dir);
+      // A passive joint ends the part in a small ball where the joint goes.
+      const sphere = isCapped(x, i) ? o.sphere : isPassive(x, i) ? PASSIVE.ballRadius : 0;
+      const m = toRoot.clone().multiply(frames[x.id].outputs[i]);
+      // Only where a joint's ball sits matters, not how far the joint is turned (so moving it doesn't rebuild the part).
+      if (isPassive(x, i)) m.makeTranslation(new THREE.Vector3().setFromMatrixPosition(m));
+      outputs.push({ m, sphere, child, dir });
     });
   };
   visit(root, null);
-  return { root, links, outputs, shape: hooks.tubeShape };
+  const p = root.parent;
+  return { root, links, outputs, shape: hooks.tubeShape, passiveIn: isPassive(node(p.nodeId), p.index) };
 }
 
 /** Module files a part's solid needs: the connectors and the motors on either side of it. */
@@ -122,6 +133,7 @@ function signature(part) {
   const r3 = (v) => Math.round(v * 1000) / 1000;
   return JSON.stringify({
     shape: part.shape,
+    passiveIn: part.passiveIn,
     outputs: part.outputs.map((o) => [o.m.elements.map(r3), o.sphere, o.dir.toArray().map(r3),
       o.child?.type === 'actuator' ? [o.child.motor, o.child.gearboxes, o.child.mount] : null]),
     parent: parent.type === 'actuator' ? [parent.motor, parent.gearboxes] : null,
@@ -151,8 +163,9 @@ export function partPlan(part) {
   const atInput = new THREE.Matrix4().makeTranslation(centre.x, centre.y, top);
 
   const square = part.shape === 'square';
-  const pieces = [], cuts = [], connectors = [{ t: 'input', m: new THREE.Matrix4() }];
-  const start = new THREE.Vector3(centre.x, centre.y, top + COLLAR.length);
+  // On a passive joint the part starts at a small ball on its input instead of a connector.
+  const pieces = [], cuts = [], connectors = [part.passiveIn ? { t: 'sphere', c: new THREE.Vector3(), r: PASSIVE.ballRadius } : { t: 'input', m: new THREE.Matrix4() }];
+  const start = part.passiveIn ? new THREE.Vector3() : new THREE.Vector3(centre.x, centre.y, top + COLLAR.length);
   for (const o of part.outputs) {
     const at = new THREE.Vector3().setFromMatrixPosition(o.m);
     const z = new THREE.Vector3().setFromMatrixColumn(o.m, 2).normalize();
@@ -170,7 +183,7 @@ export function partPlan(part) {
     const run = (a, b) => (square ? { t: 'bar', a, b, basis, r: R } : { t: 'capsule', a, b, r: R });
 
     // Input collar: a cone from the whole back face (sunk into the connector's solid top) to the tube.
-    pieces.push({ t: 'collar', frame: atInput, r: faceRadius, z0: -COLLAR.sink, z1: PLATE.thickness, tip: tip(start) });
+    if (!part.passiveIn) pieces.push({ t: 'collar', frame: atInput, r: faceRadius, z0: -COLLAR.sink, z1: PLATE.thickness, tip: tip(start) });
     if (!o.sphere) {
       // Output collar: the backing plate, a cone from it back to the tube, and a short plug into
       // the spigot's solid base so the plate is fused to it, not just touching.
@@ -207,7 +220,7 @@ export function partPlan(part) {
     for (const [bin, r] of reach) {
       cuts.push({ t: 'disc', frame: I, r: r + SWEEP_CLEARANCE, z0: bin * SWEEP_BIN - 0.01, z1: (bin + 1) * SWEEP_BIN + 0.01 });
     }
-  } else {
+  } else if (!part.passiveIn) {
     cuts.push({ t: 'disc', frame: I, r: FACE_CLEARANCE.radius, z0: -FACE_CLEARANCE.depth, z1: 0 });
   }
   for (const o of part.outputs) {

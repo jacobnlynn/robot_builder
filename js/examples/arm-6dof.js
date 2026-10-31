@@ -1,7 +1,7 @@
 // Example: 6-DoF industrial arm, the classic layout: base yaw, shoulder and elbow pitch, then a
 // wrist of roll, pitch and roll whose three axes meet near one point, ending in a ball tool. With
 // every joint at 0° the upper arm stands straight up and the forearm points forward.
-import { builder, v3, UP, FWD, BACK, LEFT, at } from './build.js';
+import { builder, animation, v3, UP, FWD, BACK, LEFT, at } from './build.js';
 
 const { motor, link, robot } = builder();
 const Y = 100; // the shoulder, elbow and wrist motors sit this far to the side of the base axis
@@ -30,4 +30,9 @@ export const ARM_6DOF = robot('6DOF arm', 'pedestal', [
   arm('Pick', 30, 20, 40, 0, 30, 0),
   arm('Wrist twist', -45, 10, 10, 90, 60, -90),
   arm('Stow', 0, -30, 125, 0, 60, 0),
+], [], [
+  // Animations (the Animate view).
+  animation('Pick and place', [['Ready', 0.3], 'Reach', ['Pick', 0.5], 'Upright']),
+  animation('Wrist twist', [['Ready', 0.3], ['Wrist twist', 0.5]], { speed: 25 }),
+  animation('Stretch', [['Ready', 0.3], ['Upright', 0.5], ['Reach', 0.3]], { speed: 25 }),
 ]);

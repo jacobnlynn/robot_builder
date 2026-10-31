@@ -73,9 +73,10 @@ const STEPS = [
   {
     title: 'Examples',
     target: '#btn-examples',
-    text: `<p>Examples (or File &gt; New) opens the start screen: load a finished robot any time to explore it (legged robots from a dog
-      to JPL's RoboSimian, a humanoid, and 7-joint, 6-joint and SCARA arms), or start from a blank one.</p>
-      <p>The File menu next to it opens and saves projects as JSON, and exports STEP and URDF.</p>`,
+    text: `<p>Examples opens the example robots, in three groups: legged robots (dogs, a hexapod, bipeds, a humanoid and
+      JPL's RoboSimian), arms (a two-armed humanoid torso and 7- and 6-joint arms) and simple mechanisms
+      (a pan-tilt head, two SCARAs and two linkages). Load one any time to explore it.</p>
+      <p>New next to it starts a blank robot, and the Import/Export menu opens and saves projects as JSON, and exports STEP and URDF.</p>`,
     setup: view('cad'),
   },
   {
@@ -106,9 +107,17 @@ const STEPS = [
     setup: view('sim'),
   },
   {
+    title: 'Animate',
+    target: '[data-view="anim"]',
+    text: `<p>Animate plays a series of saved poses. In the side panel, add poses as steps, drag them into order,
+      set how long each one holds, then Play, with Loop on or off. Every example comes with a few animations to try.</p>
+      <p>Legged robots also get a Walk button next to these: it plays the robot's walking gait.</p>`,
+    setup: view('anim'),
+  },
+  {
     title: 'Start a new robot',
-    target: '#btn-menu-file',
-    text: `<p>Now let's build one. File &gt; New &gt; Blank starts an empty robot: just the base, a locked link at the world origin.
+    target: '#btn-new',
+    text: `<p>Now let's build one. New starts an empty robot: just the base, a locked link at the world origin.
       Its blue dot is an open port, where the next part attaches.</p>
       <p>Over the next four steps we'll build a simple arm, one piece at a time.</p>`,
     setup: armStep(0, () => ({ kind: 'port', nodeId: 'base', index: 0 })),
@@ -127,7 +136,8 @@ const STEPS = [
     target: '#inspector',
     text: `<p>Next, an Upper arm link on the shoulder's output. A link is a rigid part: its outputs are placed
       with D-H parameters or XYZ + angles, measured from its port, the world or any other part.</p>
-      <p>A link can have several outputs, and each one can be another port or a sphere end (a foot or a hand).</p>`,
+      <p>A link can have several outputs, and each one can be another port, a sphere end (a foot or a hand), or a
+      ball or hinge joint that another link turns freely on, for building linkages.</p>`,
     setup: armStep(2, () => ({ kind: 'node', nodeId: last('link').id })),
   },
   {
@@ -168,7 +178,7 @@ const STEPS = [
   {
     title: 'Export STEP',
     target: '#btn-menu-file',
-    text: `<p>File &gt; Export STEP downloads the whole robot as one CAD assembly: every actuator as its full model with all of its
+    text: `<p>Import/Export &gt; Export STEP downloads the whole robot as one CAD assembly: every actuator as its full model with all of its
       interior parts, and every link filled in as a printable part.</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cadfile'); },
   },
@@ -183,9 +193,9 @@ const STEPS = [
   {
     title: 'Export URDF',
     target: '#btn-menu-file',
-    text: `<p>File &gt; Export URDF saves your robot for simulation: a robot.urdf with its joints, limits, torques and masses,
+    text: `<p>Import/Export &gt; Export URDF saves your robot for simulation: a robot.urdf with its joints, limits, torques and masses,
       plus the meshes. Load it in MuJoCo (or Gazebo, PyBullet, Isaac Sim) to test it before you build it.</p>
-      <p>That's the tour. Start your own from File &gt; New, and replay the tour any time from the ? menu. Happy building!</p>`,
+      <p>That's the tour. Start your own with New, and replay the tour any time from the ? menu. Happy building!</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cad'); },
   },
 ];

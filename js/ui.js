@@ -1,12 +1,12 @@
 import * as store from './robot.js';
 import { state, node } from './robot.js';
 import {
-  MOTORS, GEARBOXES, FAMILY_LABELS, FAMILY_COLORS, MAX_GEARBOXES, MIN_GEARBOXES, JOINT_LIMIT,
+  MOTORS, GEARBOXES, FAMILY_LABELS, FAMILY_COLORS, MAX_GEARBOXES, MIN_GEARBOXES, JOINT_LIMIT, PASSIVE,
   DH_CONVENTION, MM_PER_IN,
 } from './constants.js';
 import {
   forwardKinematics, solveLinks, stackRatio, formatRatio, actuatorReach,
-  dhToMatrix, matrixToDH, poseToMatrix, homeFrame, poseFromLocal, localKinematics,
+  dhToMatrix, matrixToDH, poseToMatrix, homeFrame, poseFromLocal, localKinematics, loopUnknowns,
 } from './kinematics.js';
 import { cadModelStatus, hooks } from './viewer.js';
 import { initSim, jointSpeed } from './simulate.js';
@@ -51,6 +51,7 @@ const POSE_FIELDS = [['x', 'x', 'len'], ['y', 'y', 'len'], ['z', 'z', 'len'], ['
 const LENGTH_KEYS = new Set(['a', 'd', 'x', 'y', 'z']);
 const ROD_FIELDS = [['lon', 'Longitude', '°'], ['lat', 'Latitude', '°']];
 const POSE_FORMULA = 'Trans(x, y, z) · Rz(γ) · Ry(β) · Rx(α)';
+const PORT_NAME = { ball: 'Open ball joint', hinge: 'Open hinge' }; // Assembly list rows for open passive joints
 const TYPE_LABEL = { base: 'Base', actuator: 'Actuator', link: 'Link' };
 const CHIP = { base: ['B', '#7b8592'], link: ['L', '#8a97a8'] };
 
@@ -85,13 +86,17 @@ function resetDraftsForPort() {
   ui.draftRobot = state.robot;
 }
 
+/** Which kind of part the selected port is set up to take: only a link fits a ball or hinge joint. */
+const addTabFor = (sel) => (sel?.kind === 'port' && store.isPassive(node(sel.nodeId), sel.index) ? 'link' : ui.addTab);
+
 /** The part being set up at the selected port, for the viewer's live preview. */
 function draftPreview() {
   const sel = state.selection;
   if (sel?.kind !== 'port' || !ui.frames[sel.nodeId]) return null;
-  const d = ui.drafts[ui.addTab];
+  const tab = addTabFor(sel);
+  const d = ui.drafts[tab];
   const input = ui.frames[sel.nodeId].outputs[sel.index];
-  if (ui.addTab === 'actuator') {
+  if (tab === 'actuator') {
     const n = { type: 'actuator', motor: d.motor, gearboxes: d.gearboxes, mount: d.mount, q: 0, children: [null] };
     return { node: n, local: localKinematics(n), input };
   }
@@ -132,7 +137,8 @@ function onChange(kind) {
   resetDraftsForPort();
   refreshViewer();
   if (kind === 'selection' || kind === 'structure') revealSelection();
-  if (kind !== 'params' || !document.activeElement?.matches?.('#tree [data-q]')) renderTree();
+  if (kind !== 'params' || !document.activeElement?.matches?.('#tree [data-q], #tree [data-pj]')) renderTree();
+  else syncPassiveSliders();
   renderStatus();
   renderViewChrome();
   if (kind === 'structure' || kind === 'selection' || kind === 'units' || kind === 'view') {
@@ -159,12 +165,30 @@ function bindTopbar() {
     if (b) store.setUnits(b.dataset.units);
   });
   $('#project-name').addEventListener('input', (e) => { state.name = e.target.value; });
+
+  // New: a blank robot. With parts on the robot, the first click asks, and a second within 3 s discards it.
+  const btn = $('#btn-new');
+  let timer = null;
+  const disarm = () => { clearTimeout(timer); timer = null; btn.textContent = 'New'; btn.classList.remove('is-armed'); };
+  btn.addEventListener('click', () => {
+    const hasParts = Object.keys(state.robot.nodes).length > 1;
+    if (hasParts && !timer) {
+      btn.textContent = 'Discard robot?';
+      btn.classList.add('is-armed');
+      timer = setTimeout(disarm, 3000);
+      return;
+    }
+    disarm();
+    store.newRobot();
+    ui.viewer.fit();
+  });
 }
 
 function renderViewChrome() {
   $$('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
   $('#vp-hint').innerHTML = state.view === 'sim'
     ? 'Drag a part to move the joints &middot; Drag empty space to orbit<br>Right-drag to pan &middot; Scroll to zoom'
+    : state.view === 'anim' ? 'Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Build and play an animation in the panel on the right'
     : 'Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Click a blue dot to attach a part';
   const name = $('#project-name');
   if (document.activeElement !== name) name.value = state.name;
@@ -218,6 +242,40 @@ const jointSlider = (n) => `<div class="tree-joint">
     <input type="range" min="${-JOINT_LIMIT}" max="${JOINT_LIMIT}" step="1" value="${n.q}" data-q="${n.id}" aria-label="${esc(n.name || 'Joint')} angle">
     <output data-q-out="${n.id}">${Math.round(n.q)}°</output></div>`;
 
+/** "name · output 2" (or just the name when the part has one output). */
+const portName = (p) => { const n = node(p.nodeId); return n.outputs?.length > 1 ? `${n.name} · output ${p.index + 1}` : n.name; };
+
+/** Passive joints a closed loop sets ('nodeId:index'): their sliders only show the angle. */
+const loopDriven = () => new Set(loopUnknowns(state.robot).map((u) => u.port));
+
+/** Move every passive joint slider to its joint's angle (a closed loop turns joints as the motors move). */
+function syncPassiveSliders() {
+  for (const el of $$('[data-pj]')) {
+    const [id, i, axis] = el.dataset.pj.split(':');
+    const o = node(id)?.outputs[Number(i)];
+    if (!o || el === document.activeElement) continue;
+    const v = axis === 'q' ? o.q ?? 0 : o.ball?.[axis] ?? 0;
+    el.value = v;
+    const out = $(`[data-pj-out="${el.dataset.pj}"]`);
+    if (out) out.textContent = `${Math.round(v)}°`;
+  }
+}
+
+/** Sliders for a passive joint (link n's output i): one for a hinge, x / y / z for a ball. */
+function passiveSliders(n, i, cls) {
+  const o = n.outputs[i];
+  const driven = loopDriven().has(`${n.id}:${i}`);
+  const one = (key, label, value) => `<div class="${cls}">
+    ${key === 'q' ? '' : `<span class="pj-axis">${label}</span>`}
+    <input type="range" min="${-PASSIVE.limit}" max="${PASSIVE.limit}" step="1" value="${value}" data-pj="${n.id}:${i}:${key}" aria-label="${esc(n.name)} ${o.end} ${label}"${driven ? ' disabled title="Set by the closed loop"' : ''}>
+    <output data-pj-out="${n.id}:${i}:${key}">${Math.round(value)}°</output></div>`;
+  return o.end === 'hinge' ? one('q', 'angle', o.q ?? 0) : ['x', 'y', 'z'].map((k) => one(k, k, o.ball?.[k] ?? 0)).join('');
+}
+
+/** The sliders under a link's row in the Assembly list when it sits on a ball or hinge joint. */
+const passiveRowSliders = (n) => (n.type === 'link' && n.parent && store.isPassive(node(n.parent.nodeId), n.parent.index)
+  ? passiveSliders(node(n.parent.nodeId), n.parent.index, 'tree-joint tree-passive') : '');
+
 /** The first part of every limb: what's attached to each output of a link with several outputs. */
 const limbRoots = () => Object.values(state.robot.nodes)
   .filter((n) => n.type === 'link' && n.children.length > 1)
@@ -262,14 +320,18 @@ function renderTree() {
   }
 
   // Assembly panel list.
-  const port = (id, i) => (store.isCapped(node(id), i)
+  const joined = (id, i) => store.loopAt(id, i);
+  const port = (id, i) => (joined(id, i)
+    ? `<li><button type="button" class="tree-port tree-joined${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
+      <span class="loop-mark" aria-hidden="true">⟲</span><span class="tree-name">Joined to ${esc(portName(joined(id, i).other))}</span><span class="tree-meta">loop</span></button></li>`
+    : store.isCapped(node(id), i)
     ? `<li><div class="tree-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">Sphere end</span>
       <span class="tree-meta">${len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}</span></div></li>`
     : `<li><button type="button" class="tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
-      <span class="port-dot" aria-hidden="true"></span><span class="tree-name">Open port</span><span class="tree-meta">attach</span></button></li>`);
+      <span class="port-dot" aria-hidden="true"></span><span class="tree-name">${PORT_NAME[node(id).outputs?.[i]?.end] ?? 'Open port'}</span><span class="tree-meta">attach</span></button></li>`);
   const row = (n, fold) => `<li><div class="tree-line">${fold ? caret(n, 'tree-caret') : ''}<button type="button" class="tree-row${nodeOn(n.id) ? ' is-selected' : ''}" data-node="${n.id}">
       ${chip(n)}<span class="tree-name">${esc(n.name || 'Unnamed')}</span><span class="tree-meta">${esc(meta(n))}</span></button></div>
-      ${n.type === 'actuator' ? jointSlider(n) : ''}</li>`;
+      ${n.type === 'actuator' ? jointSlider(n) : passiveRowSliders(n)}</li>`;
   const roots = limbRoots();
   const fold = $('#btn-collapse-all');
   fold.hidden = !roots.length;
@@ -370,6 +432,20 @@ function bindJoints() {
     $$(`[data-q-out="${id}"]`).forEach((el) => { el.textContent = `${n.q}°`; });
     store.emit('params');
   });
+  // Passive joint sliders (ball or hinge link outputs), in the Assembly list and the inspector.
+  document.addEventListener('input', (e) => {
+    const key = e.target.dataset?.pj;
+    if (!key) return;
+    const [id, i, axis] = key.split(':');
+    const o = node(id)?.outputs[Number(i)];
+    if (!o) return;
+    const v = Number(e.target.value);
+    if (axis === 'q') o.q = v;
+    else o.ball = { ...o.ball, [axis]: v };
+    $$(`[data-pj="${key}"]`).forEach((el) => { if (el !== e.target) el.value = v; });
+    $$(`[data-pj-out="${key}"]`).forEach((el) => { el.textContent = `${v}°`; });
+    store.emit('params');
+  });
 }
 
 // ---------------------------------------------------------------- Inspector
@@ -382,6 +458,7 @@ function renderInspector() {
     el.innerHTML = simInspector();
     return;
   }
+  if (state.view === 'anim') return; // js/animate.js fills the panel
   if (!n) {
     el.innerHTML = `
       <div class="insp-section insp-head">
@@ -486,18 +563,50 @@ async function toggleWorkspace(kind) {
   if (state.view === 'sim') renderInspector();
 }
 
+/** Inspector for an output joined into a closed loop: where it goes, and Unjoin. */
+function joinedInspector(n, index, other) {
+  const gap = state.robot.loopGap;
+  return `
+    <div class="insp-section insp-head">
+      <div class="eyebrow">Closed loop · ${n.outputs[index].end} joint</div>
+      <h2 class="insp-title">${esc(portName({ nodeId: n.id, index }))}</h2>
+      <p class="muted">Joined to ${esc(portName(other))}. The passive joints between the two turn so they meet${
+        n.outputs[index].end === 'hinge' && node(other.nodeId).outputs[other.index].end === 'hinge' ? ' with their hinge axes lined up' : ''}.</p>
+      ${gap ? `<p class="hint error">A loop can't close at these motor angles: ${len(gap)} apart.</p>` : ''}
+      <button type="button" class="btn" data-act="unjoin">Unjoin</button>
+    </div>`;
+}
+
+/** For an open ball or hinge output: join it to another open one to close a loop. */
+function loopSection(n, index) {
+  const options = store.loopCandidates({ nodeId: n.id, index });
+  return `
+    <div class="insp-section">
+      <div class="label-row"><span class="label">Close a loop</span><span class="hint">instead of attaching a link</span></div>
+      ${options.length ? `<p class="hint">Join this joint to another open ball or hinge joint. The joints between them then turn so the two meet.</p>
+      <div class="loop-row">
+        <select id="f-loop" aria-label="Joint to join to">${options.map((p) => `<option value="${p.nodeId}:${p.index}">${esc(portName(p))} (${node(p.nodeId).outputs[p.index].end})</option>`).join('')}</select>
+        <button type="button" class="btn" data-act="join">Join</button>
+      </div>` : '<p class="hint">Set another link output to a ball or hinge joint, and leave it open, to join it here.</p>'}
+    </div>`;
+}
+
 function attachInspector(n, index) {
-  const tab = ui.addTab;
+  const joinedTo = store.loopAt(n.id, index);
+  if (joinedTo) return joinedInspector(n, index, joinedTo.other);
+  const tab = addTabFor(state.selection);
   const d = ui.drafts[tab];
   const where = n.children.length > 1 ? `${n.name} · output ${index + 1}` : n.name;
+  const passive = store.isPassive(n, index);
   return `
     <div class="insp-section insp-head">
       <div class="eyebrow">Attach to</div>
       <h2 class="insp-title">${esc(where)}</h2>
       <div class="tabs" role="tablist" aria-label="Part type">
         ${['actuator', 'link'].map((t) => `<button type="button" role="tab" class="tab" aria-selected="${t === tab}"
-          data-act="tab" data-tab="${t}">${t === 'actuator' ? 'Actuator' : 'Link'}</button>`).join('')}
+          data-act="tab" data-tab="${t}"${passive && t === 'actuator' ? ' disabled title="Only a link can attach to a ball or hinge joint"' : ''}>${t === 'actuator' ? 'Actuator' : 'Link'}</button>`).join('')}
       </div>
+      ${passive ? `<p class="hint">This output is a ${n.outputs[index].end === 'ball' ? 'ball' : 'hinge'} joint, so the next part is a link that turns freely on it.</p>` : ''}
     </div>
     <div class="insp-section insp-body">
       <div class="field">
@@ -506,7 +615,8 @@ function attachInspector(n, index) {
       </div>
       ${tab === 'actuator' ? actuatorFields(d) : linkFields(d, null)}
       <button type="button" class="btn btn-primary btn-block" data-act="add">Add ${tab}</button>
-    </div>`;
+    </div>
+    ${passive ? loopSection(n, index) : ''}`;
 }
 
 function partInspector(n) {
@@ -631,7 +741,7 @@ function linkFields(d, n) {
           <legend>Output ${i + 1}${used ? ' <span class="tag">in use</span>' : ''}</legend>
           ${d.outputs.length > 1 ? `<button type="button" class="icon-btn dh-remove" data-act="remove-output" data-i="${i}"
             aria-label="Remove output ${i + 1}"${used ? ' disabled title="Delete the part on this output first"' : ''}>×</button>` : ''}
-          ${endField(o, i, used)}
+          ${endField(o, i, used, n)}
           ${pose ? `
           <div class="field ref-field">
             <label for="ref-${i}">Measured from</label>
@@ -654,17 +764,29 @@ function linkFields(d, n) {
     </div>`;
 }
 
-/** Output: a connector to keep building from, or a sphere that ends the robot there. */
-function endField(o, i, used) {
+/**
+ * Output: a connector to keep building from, a sphere that ends the robot there, or a passive
+ * joint (ball or hinge) that the next link turns freely on. n is the live link, or null for a draft.
+ */
+function endField(o, i, used, n) {
   const sphere = o.end === 'sphere';
+  const onIt = n?.children[i] && node(n.children[i]);
+  const tab = (end, label, why) => `<button type="button" class="tab" aria-pressed="${(o.end ?? 'output') === end}" data-act="end" data-end="${end}" data-i="${i}"${why ? ` disabled title="${why}"` : ''}>${label}</button>`;
+  const joint = onIt?.type === 'actuator' ? 'Only a link can sit on a joint: delete the actuator on this output first' : '';
   return `<div class="field end-field">
       <span class="label">Output</span>
-      <div class="tabs" role="group" aria-label="Output ${i + 1} ends in">
-        <button type="button" class="tab" aria-pressed="${!sphere}" data-act="end" data-end="output" data-i="${i}">Another output</button>
-        <button type="button" class="tab" aria-pressed="${sphere}" data-act="end" data-end="sphere" data-i="${i}"${used ? ' disabled title="Delete the part on this output first"' : ''}>Sphere end</button>
+      <div class="tabs end-tabs" role="group" aria-label="Output ${i + 1} ends in">
+        ${tab('output', 'Another output')}
+        ${tab('sphere', 'Sphere end', used ? 'Delete the part on this output first' : '')}
+        ${tab('ball', 'Ball joint', joint)}
+        ${tab('hinge', 'Hinge joint', joint)}
       </div>
       ${sphere ? `<label class="end-size">Radius <input type="number" min="1" step="${unit().step}" value="${lenField(o.sphere)}" data-field="sphere" data-i="${i}">
         <span class="hint">${state.units}</span></label>` : ''}
+      ${o.end === 'hinge' ? '<p class="hint">A hinge: the next link turns about this output’s z axis. Only a link can attach to it.</p>' : ''}
+      ${o.end === 'ball' ? '<p class="hint">A ball joint: the next link turns freely, Rz(z) · Ry(y) · Rx(x). Only a link can attach to it.</p>' : ''}
+      ${n && store.loopAt(n.id, i) ? `<p class="hint">Joined to ${esc(portName(store.loopAt(n.id, i).other))} in a closed loop.</p>`
+        : n && (o.end === 'hinge' || o.end === 'ball') ? `<div class="pj-sliders">${passiveSliders(n, i, 'range-row pj-row')}</div>` : ''}
     </div>`;
 }
 
@@ -1011,7 +1133,7 @@ function bindDataDialog() {
 function editing() {
   const sel = state.selection;
   if (sel?.kind === 'node') return { data: node(sel.nodeId), live: true };
-  return { data: ui.drafts[ui.addTab], live: false };
+  return { data: ui.drafts[addTabFor(sel)], live: false };
 }
 
 function changed(live, kind) {
@@ -1128,8 +1250,9 @@ function bindInspector() {
       case 'end': {
         const o = data.outputs[i];
         if (o.end === b.dataset.end) break;
-        o.end = b.dataset.end;
-        changed(live, 'structure'); // the output stops (or starts) being a port
+        store.setEnd(o, b.dataset.end);
+        if (live && !store.isPassive(data, i)) store.unjoinLoop({ nodeId: data.id, index: i }, true); // only joints close loops
+        changed(live, 'structure'); // the output stops (or starts) being a port, or a joint
         break;
       }
       case 'add-output':
@@ -1140,12 +1263,21 @@ function bindInspector() {
         if (live) store.removeLinkOutput(data.id, i);
         else { data.outputs.splice(i, 1); changed(false, 'structure'); }
         break;
+      case 'join': {
+        const sel = state.selection;
+        const [nodeId, index] = $('#f-loop').value.split(':');
+        store.joinLoop({ nodeId: sel.nodeId, index: sel.index }, { nodeId, index: Number(index) });
+        break;
+      }
+      case 'unjoin':
+        store.unjoinLoop({ nodeId: state.selection.nodeId, index: state.selection.index });
+        break;
       case 'add': {
         const sel = state.selection;
         const draft = structuredClone(data);
         data.name = '';
         const port = { nodeId: sel.nodeId, index: sel.index };
-        if (ui.addTab === 'actuator') store.addActuator(port, draft);
+        if (addTabFor(sel) === 'actuator') store.addActuator(port, draft);
         else store.addLink(port, draft);
         break;
       }
@@ -1186,6 +1318,8 @@ function requestDelete(id) {
 function renderStatus() {
   const nodes = Object.values(state.robot.nodes);
   const dof = nodes.filter((n) => n.type === 'actuator').length;
+  const passive = nodes.reduce((k, n) => k + (n.type === 'link' ? n.children.filter((c, i) => c && store.isPassive(n, i)).length : 0), 0);
+  const loops = state.robot.loops.length;
   const open = nodes.reduce((k, n) => k + n.children.filter((_, i) => store.isOpenPort(n, i)).length, 0);
   const sel = state.selection;
   const f = sel && ui.frames[sel.nodeId];
@@ -1196,7 +1330,8 @@ function renderStatus() {
     pos = `Selected frame  x ${num(toUnit(e[12]), d)}  y ${num(toUnit(e[13]), d)}  z ${num(toUnit(e[14]), d)} ${state.units}`;
   }
   $('#status').innerHTML = `
-    <span>${nodes.length - 1} parts</span><span>${dof} DoF</span><span>${open} open ports</span>
+    <span>${nodes.length - 1} parts</span><span>${dof} DoF</span>${passive ? `<span>${passive} passive joint${passive === 1 ? '' : 's'}</span>` : ''}${loops ? `<span>${loops} closed loop${loops === 1 ? '' : 's'}</span>` : ''}<span>${open} open ports</span>
+    ${state.robot.loopGap ? `<span class="status-warn">Loop can't close: ${len(state.robot.loopGap)} apart</span>` : ''}
     <span class="status-spacer"></span>
     <span class="mono">${pos}</span>
     <span>${CONVENTION_SHORT[DH_CONVENTION]} · deg</span>

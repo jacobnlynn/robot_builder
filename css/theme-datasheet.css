@@ -102,7 +102,7 @@ body { font-size: 14px; }
 .title-input:hover { border-color: var(--line); }
 .title-input:focus { border-color: var(--ink); }
 .field > label, .label { font-size: 13px; font-weight: 600; color: var(--ink); }
-.field input[type="text"], .field select, .stack select, .dh-cell input, .dialog textarea, .mount-num {
+.field input[type="text"], .field select, .loop-row select, .stack select, .dh-cell input, .dialog textarea, .mount-num {
   border: 1px solid var(--ink); border-radius: 0; background: #ffffff;
 }
 .field input[type="text"]:focus, .field select:focus, .stack select:focus, .dh-cell input:focus, .dialog textarea:focus {

@@ -4,7 +4,7 @@
 // (hip yaw, roll and pitch, knee, ankle pitch and roll, and a foot with a ball at the toe and heel).
 // With every joint at 0° it stands straight with its arms hanging down.
 // Every motor is placed in world coordinates (see build.js), so the links come out of the geometry.
-import { builder, v3, UP, DOWN, FWD, BACK, at } from './build.js';
+import { builder, animation, v3, UP, DOWN, FWD, BACK, at } from './build.js';
 
 const { motor, link, robot } = builder();
 const SIDES = [['left', 1], ['right', -1]];
@@ -73,6 +73,7 @@ export const HUMANOID = robot('humanoid', 'pelvis', [
   bodyPose('T-pose', { both: { shoulder_roll: 90 } }),
   // Wave: the upper arm out to the side, turned about its own axis so the elbow lifts the forearm up.
   bodyPose('Wave', { right: { shoulder_roll: 90, shoulder_yaw: -90, elbow: -90 }, neck_pan: -20 }),
+  bodyPose('Wave 2', { right: { shoulder_roll: 90, shoulder_yaw: -90, elbow: -55 }, neck_pan: -20 }),
   bodyPose('Walk', {
     left: { shoulder_pitch: 20, elbow: -20, hip_pitch: -30, knee: 20, ankle_pitch: 10 },
     right: { shoulder_pitch: -20, elbow: -20, hip_pitch: 15, knee: 30, ankle_pitch: -45 },
@@ -80,4 +81,17 @@ export const HUMANOID = robot('humanoid', 'pelvis', [
   bodyPose('Squat', { both: { shoulder_pitch: -80, hip_pitch: -60, knee: 120, ankle_pitch: -60 } }),
   bodyPose('Reach up', { both: { shoulder_pitch: -170 } }),
   bodyPose('Look around', { waist: 40, neck_pan: 30, neck_tilt: 15, both: { elbow: -30 } }),
+  // Walk: a gait cycle in four poses, worked out by inverse kinematics so feet on the ground stay level and
+  // move back while the others lift and swing forward (the body is fixed, so it walks on the spot). The arms swing
+  // opposite the legs.
+  bodyPose('Walk 1', { left: { shoulder_pitch: 11, elbow: -20, hip_pitch: -31, knee: 43, ankle_pitch: -12.5 }, right: { shoulder_pitch: -16.5, elbow: -20, hip_pitch: -12.5, knee: 44, ankle_pitch: -30.5 } }),
+  bodyPose('Walk 2', { left: { shoulder_pitch: 0, elbow: -20, hip_pitch: -23.5, knee: 47, ankle_pitch: -23 }, right: { shoulder_pitch: 19.5, elbow: -20, hip_pitch: -36.5, knee: 72.5, ankle_pitch: -36.5 } }),
+  bodyPose('Walk 3', { left: { shoulder_pitch: -16.5, elbow: -20, hip_pitch: -12.5, knee: 44, ankle_pitch: -30.5 }, right: { shoulder_pitch: 11, elbow: -20, hip_pitch: -31, knee: 43, ankle_pitch: -12.5 } }),
+  bodyPose('Walk 4', { left: { shoulder_pitch: 19.5, elbow: -20, hip_pitch: -36.5, knee: 72.5, ankle_pitch: -36.5 }, right: { shoulder_pitch: 0, elbow: -20, hip_pitch: -23.5, knee: 47, ankle_pitch: -23 } }),
+], [], [
+  // Animations (the Animate view).
+  animation('Walk', ['Walk 1', 'Walk 2', 'Walk 3', 'Walk 4'], { pause: false, speed: 100, walk: true }),
+  animation('Wave', [['Stand', 0.3], 'Wave', 'Wave 2', 'Wave', 'Wave 2', ['Wave', 0.3]]),
+  animation('Exercise', ['Stand', 'T-pose', 'Reach up', 'T-pose', 'Stand', ['Squat', 0.5]]),
+  animation('Look around', [['Stand', 0.5], ['Look around', 1]], { speed: 25 }),
 ]);

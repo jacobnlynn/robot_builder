@@ -183,7 +183,7 @@ input[type="range"] { accent-color: var(--accent); }
 .field > label, .label { font-size: 14px; font-weight: normal; color: #000000; }
 
 /* Text fields and lists: sunken white */
-.field input[type="text"], .field select, .stack select, .dh-cell input, .mount-num, .dialog textarea, .stack, .summary div, .matrix {
+.field input[type="text"], .field select, .loop-row select, .stack select, .dh-cell input, .mount-num, .dialog textarea, .stack, .summary div, .matrix {
   border: 2px solid;
   border-color: var(--sunken);
   border-radius: 0;

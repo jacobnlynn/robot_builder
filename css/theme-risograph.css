@@ -109,7 +109,7 @@ input[type="range"] { accent-color: var(--accent); }
 .title-input:focus { border-color: var(--ink); }
 .field > label, .label { font-size: 13px; font-weight: 700; color: var(--ink); }
 /* Fields are underlines, as if filled in by hand */
-.field input[type="text"], .field select, .stack select, .dh-cell input, .mount-num {
+.field input[type="text"], .field select, .loop-row select, .stack select, .dh-cell input, .mount-num {
   border: 0; border-bottom: 2px solid var(--ink); border-radius: 0; background: transparent; font-family: var(--font-mono);
 }
 .dialog textarea { border: 2px solid var(--ink); background: transparent; }

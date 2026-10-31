@@ -1,4 +1,4 @@
-// Top bar menus (File, ?): a button that opens a list of items. A click outside, Esc or picking an
+// Top bar menus (Import/Export, ?): a button that opens a list of items. A click outside, Esc or picking an
 // item closes it; the items themselves are ordinary buttons with their own handlers.
 const MENUS = [['btn-menu-file', 'menu-file'], ['btn-menu-help', 'menu-help']];
 

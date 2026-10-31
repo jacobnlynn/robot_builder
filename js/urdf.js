@@ -6,12 +6,16 @@
 // Every actuator is a revolute joint about its output z axis, placed at its output frame with
 // every joint at 0°. Limits are the ±JOINT_LIMIT sliders; velocity is the simulate top speed;
 // effort is the motor's torque times the joint's total gear ratio.
+// Passive joints (ball or hinge link outputs) are unpowered: a hinge is a continuous joint about the
+// output's z axis, and a ball (which URDF has no joint for) is three continuous joints about z, y
+// and x in turn, through two tiny bodies at the same place. URDF can't describe a closed loop, so
+// each loop's joint is left open (a comment in the file says where); the robot is exported as its tree.
 // Inertial data assumes everything is one uniform density (DENSITY): each actuator module uses
 // the volume, centre of mass and inertia of its full model (MODULES, measured from
 // models/<family>_gearbox.step and _extension.step), each link part is measured from its own solid, and a body's
 // values combine everything it carries.
 import * as THREE from 'three';
-import { state, node } from './robot.js';
+import { state, node, isPassive } from './robot.js';
 import { FAMILY_COLORS, JOINT_LIMIT } from './constants.js';
 import { forwardKinematics, stackRatio } from './kinematics.js';
 import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
@@ -85,6 +89,8 @@ function zip(files) {
 }
 
 const MOTOR_TORQUE = 0.7; // N·m at the motor shaft, before any gearbox
+// The tiny bodies between a ball joint's three axes: 1 g, a 1 cm³ cube's inertia (kg, mm, kg·mm²).
+const TOKEN_MASS = { m: 0.001, c: new THREE.Vector3(), I: new THREE.Matrix3().set(1.7e-2, 0, 0, 0, 1.7e-2, 0, 0, 0, 1.7e-2) };
 const DENSITY = 1.24e-6; // kg/mm³ (1.24 g/cm³, printed PLA), assumed uniform everywhere
 
 // Full-model mass properties per unit density, in each module's own Z-up frame (mm):
@@ -176,11 +182,17 @@ export async function exportURDF(onProgress = () => {}) {
   if (!(await whenCadReady(keys))) throw new Error('Some module models could not be loaded.');
   if (!hooks.linkFillTriangles) throw new Error('Filled links are not available, so links cannot be exported.');
 
-  // Home pose: every joint at 0°, as URDF expects.
-  const saved = Object.values(state.robot.nodes).filter((n) => n.type === 'actuator').map((n) => [n, n.q]);
+  // Home pose: every joint at 0°, passive ones too, as URDF expects.
+  const all = Object.values(state.robot.nodes);
+  const saved = all.filter((n) => n.type === 'actuator').map((n) => [n, n.q]);
+  const savedPassive = all.filter((n) => n.type === 'link').flatMap((n) => n.outputs.map((o) => [o, o.q, o.ball]));
   saved.forEach(([n]) => { n.q = 0; });
+  savedPassive.forEach(([o]) => { o.q = 0; o.ball = { x: 0, y: 0, z: 0 }; });
   let frames;
-  try { frames = forwardKinematics(state.robot); } finally { saved.forEach(([n, q]) => { n.q = q; }); }
+  try { frames = forwardKinematics(state.robot); } finally {
+    saved.forEach(([n, q]) => { n.q = q; });
+    savedPassive.forEach(([o, q, ball]) => { o.q = q; o.ball = ball; });
+  }
 
   // Unique, URDF-safe names.
   const used = new Set();
@@ -197,6 +209,30 @@ export async function exportURDF(onProgress = () => {}) {
   const masses = new Map([[baseBody, []]]); // URDF link → mass properties in its frame
   const joints = [];
   const order = [];
+  const newBody = (name, frame) => {
+    const b = nameFor(name);
+    bodyFrame.set(b, frame.clone());
+    visuals.set(b, []);
+    masses.set(b, []);
+    return b;
+  };
+  // A passive joint on output i of link n: the body after it (and the joint or joints that reach it).
+  const passiveBody = (n, i, body, child) => {
+    const o = n.outputs[i], frame = frames[n.id].outputs[i];
+    const after = newBody(`${node(child).name}_link`, frame);
+    if (o.end === 'hinge') {
+      joints.push({ passive: true, name: nameFor(`${n.name}_hinge${n.outputs.length > 1 ? i + 1 : ''}`), parent: body, child: after, axis: '0 0 1' });
+      return after;
+    }
+    // Ball: Rz · Ry · Rx, through two tiny bodies with a token mass so simulators keep them.
+    const ball = nameFor(`${n.name}_ball${n.outputs.length > 1 ? i + 1 : ''}`);
+    const zBody = newBody(`${ball}_z_link`, frame), yBody = newBody(`${ball}_y_link`, frame);
+    for (const b of [zBody, yBody]) masses.get(b).push(TOKEN_MASS);
+    joints.push({ passive: true, name: nameFor(`${ball}_z`), parent: body, child: zBody, axis: '0 0 1' },
+      { passive: true, name: nameFor(`${ball}_y`), parent: zBody, child: yBody, axis: '0 1 0' },
+      { passive: true, name: nameFor(`${ball}_x`), parent: yBody, child: after, axis: '1 0 0' });
+    return after;
+  };
   const visit = (id, body) => {
     order.push(id);
     bodyOf.set(id, body);
@@ -209,7 +245,7 @@ export async function exportURDF(onProgress = () => {}) {
       masses.set(childBody, []);
       joints.push({ n, name: nameFor(n.name), parent: body, child: childBody });
     }
-    n.children.forEach((c) => c && visit(c, childBody));
+    n.children.forEach((c, i) => c && visit(c, isPassive(n, i) ? passiveBody(n, i, childBody, c) : childBody));
   };
   visit(state.robot.rootId, baseBody);
 
@@ -255,6 +291,7 @@ export async function exportURDF(onProgress = () => {}) {
     `     Joint effort = ${MOTOR_TORQUE} N·m motor torque × gear ratio. Inertial data assumes a uniform ${fmt(DENSITY * 1e6)} g/cm³. -->`,
     `<robot name="${esc(nameFor(state.name || 'robot'))}">`,
     ...colours.map((c) => `  <material name="${material(c)}"><color rgba="${rgba(c)}"/></material>`),
+    ...state.robot.loops.map(({ a, b }) => `  <!-- Closed loop not in this file (URDF has no loops): ${esc(node(a.nodeId).name)} output ${a.index + 1} joins ${esc(node(b.nodeId).name)} output ${b.index + 1}. -->`),
   ];
   for (const [body, list] of visuals) {
     lines.push(`  <link name="${body}">`);
@@ -271,6 +308,11 @@ export async function exportURDF(onProgress = () => {}) {
   const lim = (JOINT_LIMIT * Math.PI) / 180;
   for (const j of joints) {
     const toParent = bodyFrame.get(j.parent).clone().invert().multiply(bodyFrame.get(j.child));
+    if (j.passive) {
+      lines.push(`  <joint name="${j.name}" type="continuous">`, `    <parent link="${j.parent}"/>`, `    <child link="${j.child}"/>`,
+        `    ${origin(toParent)}`, `    <axis xyz="${j.axis}"/>`, '    <dynamics damping="0" friction="0"/>', '  </joint>');
+      continue;
+    }
     lines.push(`  <joint name="${j.name}" type="revolute">`,
       `    <parent link="${j.parent}"/>`,
       `    <child link="${j.child}"/>`,

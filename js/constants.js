@@ -52,4 +52,7 @@ export const SIM_MOTOR_SPEED = 4400 * 6;
 
 export const OUTPUT_FLANGE = { thickness: 6, inset: 4, color: 0x8b95a2 };
 export const LINK = { radius: 13, flangeRadius: 26, flangeThickness: 6 };
+// Passive joints between two links (a link output that is a ball or hinge joint): drawn much
+// smaller than the motor connectors. A hinge turns about the output's z axis.
+export const PASSIVE = { color: 0xd9a21b, ballRadius: 16, hingeRadius: 8, hingeLength: 40, limit: 180 };
 export const DEFAULT_LINK_DH = { a: 0, alpha: 0, d: 80, theta: 0 };
