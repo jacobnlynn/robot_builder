@@ -1,0 +1,603 @@
+{
+  "format": "modular-robot",
+  "version": 1,
+  "convention": "standard",
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "name": "6DOF long-reach arm",
+  "rootId": "base",
+  "nodes": [
+    {
+      "id": "base",
+      "type": "link",
+      "name": "Base",
+      "fixed": true,
+      "spec": "dh",
+      "parent": null,
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 0,
+            "ref": "input"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "pedestal"
+      ]
+    },
+    {
+      "id": "pedestal",
+      "type": "link",
+      "name": "pedestal",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "base",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 56.515,
+            "y": 0,
+            "z": 140.5,
+            "alpha": 0,
+            "beta": -90,
+            "gamma": 0,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j1"
+      ]
+    },
+    {
+      "id": "j1",
+      "type": "actuator",
+      "name": "J1 base",
+      "motor": "m1",
+      "gearboxes": [
+        "cycloidal_18",
+        "cycloidal_18"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "pedestal",
+        "index": 0
+      },
+      "children": [
+        "turret"
+      ]
+    },
+    {
+      "id": "turret",
+      "type": "link",
+      "name": "turret",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j1",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 0,
+            "y": 40,
+            "z": 346.529,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 90,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j2"
+      ]
+    },
+    {
+      "id": "j2",
+      "type": "actuator",
+      "name": "J2 shoulder",
+      "motor": "m1",
+      "gearboxes": [
+        "cycloidal_18",
+        "cycloidal_18"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "turret",
+        "index": 0
+      },
+      "children": [
+        "upper_arm"
+      ]
+    },
+    {
+      "id": "upper_arm",
+      "type": "link",
+      "name": "upper_arm",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j2",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 0,
+            "y": 118.029,
+            "z": 555.444,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 90,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j3"
+      ]
+    },
+    {
+      "id": "j3",
+      "type": "actuator",
+      "name": "J3 elbow",
+      "motor": "m1",
+      "gearboxes": [
+        "cycloidal_18",
+        "cycloidal_18"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "upper_arm",
+        "index": 0
+      },
+      "children": [
+        "forearm"
+      ]
+    },
+    {
+      "id": "forearm",
+      "type": "link",
+      "name": "forearm",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j3",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 152.4,
+            "y": 196.058,
+            "z": 611.959,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 0,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j4"
+      ]
+    },
+    {
+      "id": "j4",
+      "type": "actuator",
+      "name": "J4 forearm roll",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9",
+        "planetary_5"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "forearm",
+        "index": 0
+      },
+      "children": [
+        "wrist1"
+      ]
+    },
+    {
+      "id": "wrist1",
+      "type": "link",
+      "name": "wrist1",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j4",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 382.829,
+            "y": 196.058,
+            "z": 668.474,
+            "alpha": 90,
+            "beta": 0,
+            "gamma": 90,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j5"
+      ]
+    },
+    {
+      "id": "j5",
+      "type": "actuator",
+      "name": "J5 wrist pitch",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_9"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "wrist1",
+        "index": 0
+      },
+      "children": [
+        "wrist2"
+      ]
+    },
+    {
+      "id": "wrist2",
+      "type": "link",
+      "name": "wrist2",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j5",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 454.344,
+            "y": 252.573,
+            "z": 668.474,
+            "alpha": 90,
+            "beta": 0,
+            "gamma": 0,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "output",
+          "sphere": 20
+        }
+      ],
+      "children": [
+        "j6"
+      ]
+    },
+    {
+      "id": "j6",
+      "type": "actuator",
+      "name": "J6 tool roll",
+      "motor": "m1",
+      "gearboxes": [
+        "planetary_5"
+      ],
+      "mount": 0,
+      "q": 0,
+      "parent": {
+        "nodeId": "wrist2",
+        "index": 0
+      },
+      "children": [
+        "tool"
+      ]
+    },
+    {
+      "id": "tool",
+      "type": "link",
+      "name": "tool",
+      "spec": "pose",
+      "parent": {
+        "nodeId": "j6",
+        "index": 0
+      },
+      "outputs": [
+        {
+          "dh": {
+            "a": 0,
+            "alpha": 0,
+            "d": 0,
+            "theta": 0
+          },
+          "pose": {
+            "x": 531.733,
+            "y": 196.058,
+            "z": 668.474,
+            "alpha": 0,
+            "beta": 0,
+            "gamma": 0,
+            "ref": "world"
+          },
+          "rod": {
+            "lon": 0,
+            "lat": 90
+          },
+          "end": "sphere",
+          "sphere": 18
+        }
+      ],
+      "children": [
+        null
+      ]
+    }
+  ],
+  "loops": [],
+  "poses": [
+    {
+      "name": "Home",
+      "q": {
+        "j1": 0,
+        "j2": 0,
+        "j3": 0,
+        "j4": 0,
+        "j5": 0,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Ready",
+      "q": {
+        "j1": 0,
+        "j2": 20,
+        "j3": 45,
+        "j4": 0,
+        "j5": 25,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Full reach",
+      "q": {
+        "j1": 0,
+        "j2": 90,
+        "j3": -90,
+        "j4": 0,
+        "j5": 0,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Reach up",
+      "q": {
+        "j1": 0,
+        "j2": 0,
+        "j3": -90,
+        "j4": 0,
+        "j5": 0,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Pick",
+      "q": {
+        "j1": 0,
+        "j2": 55,
+        "j3": 25,
+        "j4": 0,
+        "j5": 10,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Pick left",
+      "q": {
+        "j1": 90,
+        "j2": 55,
+        "j3": 25,
+        "j4": 0,
+        "j5": 10,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Place right",
+      "q": {
+        "j1": -90,
+        "j2": 40,
+        "j3": 40,
+        "j4": 0,
+        "j5": 10,
+        "j6": 0
+      }
+    },
+    {
+      "name": "Wrist twist",
+      "q": {
+        "j1": -30,
+        "j2": 20,
+        "j3": 30,
+        "j4": 90,
+        "j5": 60,
+        "j6": -90
+      }
+    },
+    {
+      "name": "Reach back",
+      "q": {
+        "j1": 180,
+        "j2": 40,
+        "j3": -40,
+        "j4": 0,
+        "j5": 0,
+        "j6": 0
+      }
+    }
+  ],
+  "animations": [
+    {
+      "name": "Pick and place",
+      "loop": true,
+      "speed": 50,
+      "pause": true,
+      "steps": [
+        {
+          "pose": "Ready",
+          "hold": 0.3
+        },
+        {
+          "pose": "Pick",
+          "hold": 0.5
+        },
+        {
+          "pose": "Ready",
+          "hold": 0
+        },
+        {
+          "pose": "Pick left",
+          "hold": 0.5
+        },
+        {
+          "pose": "Ready",
+          "hold": 0
+        },
+        {
+          "pose": "Place right",
+          "hold": 0.5
+        }
+      ]
+    },
+    {
+      "name": "Reach around",
+      "loop": true,
+      "speed": 25,
+      "pause": true,
+      "steps": [
+        {
+          "pose": "Full reach",
+          "hold": 0.3
+        },
+        {
+          "pose": "Reach up",
+          "hold": 0
+        },
+        {
+          "pose": "Reach back",
+          "hold": 0.3
+        },
+        {
+          "pose": "Reach up",
+          "hold": 0
+        }
+      ]
+    },
+    {
+      "name": "Wrist twist",
+      "loop": true,
+      "speed": 25,
+      "pause": true,
+      "steps": [
+        {
+          "pose": "Ready",
+          "hold": 0.3
+        },
+        {
+          "pose": "Wrist twist",
+          "hold": 0.5
+        }
+      ]
+    }
+  ]
+}

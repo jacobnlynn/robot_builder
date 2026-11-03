@@ -357,6 +357,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
   color: var(--ink-2);
 }
 .vp-bar { position: absolute; top: 12px; left: 12px; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vp-walk[hidden] { display: none; } /* .btn's display would otherwise keep it showing */
 .vp-walk[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
 .vp-hint { position: absolute; bottom: 12px; right: 12px; max-width: 50%; font-size: 11px; text-align: right; color: var(--muted); pointer-events: none; }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; }

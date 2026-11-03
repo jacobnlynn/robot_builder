@@ -27,6 +27,14 @@ export const THEMES = {
       scene: { background: 0xf4f1ea, select: 0xff4f9a, seam: 0x1f4fd8, simpleLine: 0x1f4fd8, simpleJoint: 0xff4f9a },
     },
   },
+  pixel: {
+    label: 'Pixel',
+    css: 'css/theme-pixel.css',
+    // The 3D view renders as usual, on the theme's navy, with a mustard selection.
+    colors: {
+      scene: { background: 0x1d2b53, select: 0xe8c547, seam: 0x1d2b53, simpleLine: 0xd4d7de, simpleJoint: 0x29adff },
+    },
+  },
 };
 export const DEFAULT_THEME = 'retro';
 const KEY = 'mrb.style';

@@ -80,9 +80,9 @@ const STEPS = [
     setup: view('cad'),
   },
   {
-    title: 'Model view',
+    title: 'Build view',
     target: '[data-view="cad"]',
-    text: `<p>Model is the everyday view: actuators as colour-coded cylinders (one colour per gearbox type)
+    text: `<p>Build is the everyday view: actuators as colour-coded cylinders (one colour per gearbox type)
       and links as rods. Drag to orbit, right-drag to pan, scroll to zoom.</p>`,
     setup: view('cad'),
   },

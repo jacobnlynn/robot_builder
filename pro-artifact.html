@@ -1,0 +1,308 @@
+<title>Robot Builder Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="pro/css/style.css">
+<link rel="stylesheet" href="pro/css/pro.css">
+<link rel="stylesheet" href="pro/css/theme-dark.css" id="theme-css"> <!-- Dark by default; View > Theme (pro/js/styles.js) swaps it -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="pro/js/main.js"></script>
+<!-- Menu bar: the app's menus (pro/js/menus.js opens them, pro/js/chrome.js runs the commands), then the open document -->
+<header class="menubar">
+  <div class="mb-brand">
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="13" width="9" height="9" rx="1" style="fill: var(--ink-2)"></rect>
+      <path d="M7 15 L17 6" style="stroke: var(--sel); stroke-width: 3; stroke-linecap: round; fill: none"></path>
+      <circle cx="18" cy="5.5" r="3" style="fill: var(--bg); stroke: var(--ink-2); stroke-width: 2"></circle>
+    </svg>
+    <span class="brand-name">Robot Builder</span>
+  </div>
+  <nav class="mb-menus" aria-label="Menu">
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-project" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-project">Project</button>
+      <div class="menu-list" id="menu-project" role="menu" aria-label="Project" hidden>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="new"><span>New blank robot</span><kbd>Alt+N</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="examples"><span>Examples&hellip;</span><kbd>Alt+E</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" id="btn-import"><span>Open JSON&hellip;</span><kbd>Ctrl+O</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" id="btn-file"><span>Save JSON&hellip;</span><kbd>Ctrl+S</kbd></button>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-edit" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-edit">Edit</button>
+      <div class="menu-list" id="menu-edit" role="menu" aria-label="Edit" hidden>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="undo"><span>Undo</span><kbd>Ctrl+Z</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="redo"><span>Redo</span><kbd>Ctrl+Y</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="parent"><span>Select parent</span><kbd>Alt+&uarr;</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="next-port"><span>Next open port</span><kbd>Tab</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="deselect"><span>Deselect</span><kbd>Esc</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="delete"><span>Delete part</span><kbd>Del</kbd></button>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-view" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-view">View</button>
+      <div class="menu-list" id="menu-view" role="menu" aria-label="View" hidden>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="view:cad"><span>Build</span><kbd>1</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="view:cadfile"><span>CAD</span><kbd>2</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="view:simple"><span>Simplified</span><kbd>3</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="view:sim"><span>Simulate</span><kbd>4</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="view:anim"><span>Animate</span><kbd>5</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="fit"><span>Fit to robot</span><kbd>F</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="cam:iso"><span>Isometric</span><kbd>0</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="cam:top"><span>Top</span><kbd>7</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="cam:front"><span>Front</span><kbd>8</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="cam:right"><span>Right</span><kbd>9</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="frames"><span>Joint frames</span><kbd>Alt+F</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="grid"><span>Ground grid</span><kbd>G</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="callout"><span>Selection label</span><kbd>L</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="timeline"><span>Timeline</span><kbd>T</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-label">Theme</div>
+        <div id="style-list" role="group" aria-label="Theme"></div>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-robot" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-robot">Robot</button>
+      <div class="menu-list" id="menu-robot" role="menu" aria-label="Robot" hidden>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="data"><span>Robot data&hellip;</span><kbd>Alt+D</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="tree"><span>Tree diagram&hellip;</span></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="workspace"><span>Workspaces</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="walk"><span>Walk</span><kbd>W</kbd></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="zero"><span>Zero all joints</span></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="save-pose"><span>Save pose&hellip;</span></button>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-export" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-export">Export</button>
+      <div class="menu-list" id="menu-export" role="menu" aria-label="Export" hidden>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="export-step"><span>STEP assembly&hellip;</span></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="export-urdf"><span>URDF + meshes&hellip;</span></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="screenshot"><span>Screenshot (PNG)</span><kbd>Alt+P</kbd></button>
+      </div>
+    </div>
+    <div class="menu">
+      <button type="button" class="mb-btn" id="mb-help" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-help">Help</button>
+      <div class="menu-list" id="menu-help" role="menu" aria-label="Help" hidden>
+        <button type="button" class="menu-item" role="menuitem" id="btn-tour"><span>Tutorial</span></button>
+        <button type="button" class="menu-item" role="menuitem" data-cmd="shortcuts"><span>Keyboard shortcuts</span><kbd>?</kbd></button>
+        <div class="menu-sep" role="separator"></div>
+        <a class="menu-item" role="menuitem" href="https://claude.ai/artifact/EECT7Fhzr15Ny1nNRvAodh"><span>Open the classic layout</span></a>
+      </div>
+    </div>
+  </nav>
+  <span class="mb-spacer"></span>
+  <div class="doc-tab">
+    <label for="project-name" class="sr-only">Project name</label>
+    <input id="project-name" class="project-name" type="text" autocomplete="off">
+    <span class="doc-dirty" id="doc-dirty" title="Changed since it was last opened or saved" hidden>&#9679;</span>
+  </div>
+</header>
+
+<!-- Ribbon: the everyday tools, in groups -->
+<div class="ribbon" role="toolbar" aria-label="Tools">
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" id="btn-examples" title="Open an example robot (Alt+E)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="6.5" height="6" rx="1"></rect><rect x="11" y="3" width="6.5" height="6" rx="1"></rect><rect x="2.5" y="11" width="6.5" height="6" rx="1"></rect><rect x="11" y="11" width="6.5" height="6" rx="1"></rect></svg><span>Examples</span></button>
+      <button type="button" class="rb-tool" id="btn-new" title="Start a blank robot (Alt+N)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5z"></path><path d="M12 2.5V6h3.5M10 9v6M7 12h6"></path></svg><span class="new-label">New</span></button>
+      <button type="button" class="rb-tool" data-cmd="undo" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5L3 9l4 4"></path><path d="M3.5 9H12a4.5 4.5 0 0 1 0 9h-2"></path></svg><span>Undo</span></button>
+      <button type="button" class="rb-tool" data-cmd="redo" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 5l4 4-4 4"></path><path d="M16.5 9H8a4.5 4.5 0 0 0 0 9h2"></path></svg><span>Redo</span></button>
+    </div>
+    <span class="rb-label">Project</span>
+  </div>
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" data-cmd="next-port" title="Select the next open port, to attach a part there (Tab)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="8" width="8" height="8" rx="1.5"></rect><circle cx="15" cy="6" r="3"></circle><path d="M15 1.5v1.5M15 9v1.5M10.5 6h1.5M18 6h1.5"></path></svg><span>Attach</span></button>
+      <button type="button" class="rb-tool" id="btn-tree-view" aria-pressed="false" title="Open the assembly as a tree diagram">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7.5" y="2" width="5" height="4" rx="1"></rect><rect x="2" y="14" width="5" height="4" rx="1"></rect><rect x="13" y="14" width="5" height="4" rx="1"></rect><path d="M10 6v4M4.5 14v-4h11v4"></path></svg><span>Tree</span></button>
+      <button type="button" class="rb-tool" data-cmd="delete" title="Delete the selected part (Del)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 5.5h13M8 5.5V3h4v2.5M5 5.5l1 11.5h8l1-11.5M8.5 8.5v6M11.5 8.5v6"></path></svg><span>Delete</span></button>
+    </div>
+    <span class="rb-label">Build</span>
+  </div>
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" data-view="cad" aria-pressed="true" title="Build view (1)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5l6.5 3.75v7.5L10 17.5l-6.5-3.75v-7.5z"></path><path d="M10 10l6.5-3.75M10 10v7.5M10 10L3.5 6.25"></path></svg><span>Build</span></button>
+      <button type="button" class="rb-tool" data-view="cadfile" aria-pressed="false" title="The real motor and gearbox shells, and filled links (2)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="5" width="14" height="10" rx="5"></rect><path d="M7 5v10M13 5v10"></path></svg><span>CAD</span></button>
+      <button type="button" class="rb-tool" data-view="simple" aria-pressed="false" title="Joint axes and links only (3)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="11" width="4" height="6" rx="1"></rect><rect x="13" y="3" width="4" height="6" rx="1"></rect><path d="M5 11L15 9"></path></svg><span>Simplified</span></button>
+      <button type="button" class="rb-tool" data-cmd="frames" aria-pressed="true" title="Show each joint's frame (Alt+F)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="ax-x" d="M5 15h11"></path><path class="ax-y" d="M5 15L1.5 18.5"></path><path class="ax-z" d="M5 15V3"></path></svg><span>Frames</span></button>
+      <button type="button" class="rb-tool" data-cmd="grid" aria-pressed="true" title="Ground grid under the robot (G)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14l8-4 8 4-8 4z"></path><path d="M6 12l8 4M10 10l-4 6M14 12l-8 4M10 10l4 6"></path></svg><span>Grid</span></button>
+    </div>
+    <span class="rb-label">Display</span>
+  </div>
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" data-view="sim" aria-pressed="false" title="Drag the robot: the joints follow (4)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3l9 6.5-4 1 2.5 5-2 1-2.5-5-3 3z"></path></svg><span>Simulate</span></button>
+      <button type="button" class="rb-tool" data-view="anim" aria-pressed="false" title="Play a series of poses (5)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="1.5"></rect><path d="M8.5 7.5v5l4-2.5z"></path></svg><span>Animate</span></button>
+      <button type="button" class="rb-tool" id="btn-walk" aria-pressed="false" title="Play this robot's walk (W)" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 16c2-1 3-4 5-4s3 3 5 3 3-6 4-9"></path><circle cx="3" cy="16" r="1.2"></circle><circle cx="17" cy="6" r="1.2"></circle></svg><span class="walk-label">Walk</span></button>
+    </div>
+    <span class="rb-label">Motion</span>
+  </div>
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" data-cmd="workspace" title="Reachable and dexterous workspaces (in Simulate)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"></circle><ellipse cx="10" cy="10" rx="7" ry="3"></ellipse></svg><span>Workspace</span></button>
+      <button type="button" class="rb-tool" id="btn-data" title="Jacobians, transforms and joint data for the whole robot (Alt+D)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3H3v14h2M15 3h2v14h-2"></path><path d="M7 7h2M11 7h2M7 10h2M11 10h2M7 13h2M11 13h2"></path></svg><span>Robot data</span></button>
+    </div>
+    <span class="rb-label">Analyze</span>
+  </div>
+  <div class="rb-group">
+    <div class="rb-tools">
+      <button type="button" class="rb-tool" id="btn-export-step" title="The whole robot as one STEP assembly">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5"></path><path d="M3.5 13.5v3h13v-3"></path></svg><span>STEP</span></button>
+      <button type="button" class="rb-tool" id="btn-export-urdf" title="robot.urdf + meshes, for simulators">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6l-3.5 4L6 14M14 6l3.5 4L14 14M11.5 4.5l-3 11"></path></svg><span>URDF</span></button>
+    </div>
+    <span class="rb-label">Export</span>
+  </div>
+</div>
+<input type="file" id="import-input" accept=".json,application/json" hidden>
+
+<div class="app">
+  <main class="workspace">
+    <!-- Left dock: Assembly, Poses, Loops -->
+    <aside class="panel panel-left" aria-label="Assembly">
+      <div class="dock-tabs" role="tablist" aria-label="Left panel">
+        <button type="button" role="tab" class="dock-tab" id="tab-assembly" aria-selected="true" aria-controls="pane-assembly">Assembly</button>
+        <button type="button" role="tab" class="dock-tab" id="tab-poses" aria-selected="false" aria-controls="pane-poses" tabindex="-1">Poses <span class="tab-count" id="count-poses"></span></button>
+        <button type="button" role="tab" class="dock-tab" id="tab-loops" aria-selected="false" aria-controls="pane-loops" tabindex="-1">Loops <span class="tab-count" id="count-loops"></span></button>
+      </div>
+      <section class="panel-section dock-pane" id="pane-assembly" role="tabpanel" aria-labelledby="tab-assembly">
+        <div class="section-head">
+          <input type="search" id="tree-search" class="tree-search" placeholder="Filter parts" aria-label="Filter parts" autocomplete="off">
+          <button type="button" class="btn btn-ghost btn-small" id="btn-collapse-all" title="Fold every limb to one line">Collapse all</button>
+        </div>
+        <div id="tree"></div>
+      </section>
+      <section class="panel-section dock-pane" id="pane-poses" role="tabpanel" aria-labelledby="tab-poses" hidden>
+        <div id="poses" class="poses"></div>
+      </section>
+      <section class="panel-section dock-pane" id="pane-loops" role="tabpanel" aria-labelledby="tab-loops" hidden>
+        <div id="loops-list"></div>
+      </section>
+    </aside>
+
+    <div class="center">
+      <div class="viewport" id="viewport">
+        <div class="vp-tags" id="vp-tags"></div>
+        <div class="vp-cube" id="view-cube" role="group" aria-label="View cube"></div>
+        <svg class="vp-triad" id="triad" width="64" height="64" viewBox="-32 -32 64 64" aria-hidden="true"></svg>
+        <div class="vp-callout" id="callout" hidden></div>
+        <div class="vp-camera" role="toolbar" aria-label="Camera">
+          <button type="button" data-cmd="fit" aria-label="Fit to robot" title="Fit to robot (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"></path></svg></button>
+          <button type="button" data-cmd="cam:iso" aria-label="Isometric view" title="Isometric (0)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l5.5 3.2v6.6L8 14.5l-5.5-3.2V4.7z"></path><path d="M8 8l5.5-3.3M8 8v6.5M8 8L2.5 4.7"></path></svg></button>
+          <button type="button" data-cmd="cam:top" aria-label="Top view" title="Top (7)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11"></rect><path d="M2.5 2.5l11 11" class="dim"></path></svg></button>
+          <button type="button" data-cmd="cam:front" aria-label="Front view" title="Front (8)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4.5" width="11" height="9"></rect><path d="M2.5 9h11" class="dim"></path></svg></button>
+          <button type="button" data-cmd="cam:right" aria-label="Right view" title="Right (9)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="2.5" width="7" height="11"></rect><path d="M8 2.5v11" class="dim"></path></svg></button>
+          <span class="vp-sep" aria-hidden="true"></span>
+          <button type="button" data-cmd="screenshot" aria-label="Save a screenshot" title="Screenshot (Alt+P)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="9.5" rx="1.5"></rect><circle cx="8" cy="8.75" r="2.6"></circle><path d="M5.5 4l1-2h3l1 2"></path></svg></button>
+        </div>
+        <div class="vp-tools" id="tube-toggle" hidden></div>
+        <div class="vp-hint" id="vp-hint"></div>
+        <div class="vp-legend" id="legend"></div>
+      </div>
+      <!-- Timeline: the current animation's joint curves; pro/js/timeline.js -->
+      <section class="timeline" id="timeline" aria-label="Timeline"></section>
+    </div>
+
+    <aside class="panel panel-right" aria-label="Properties">
+      <div class="dock-head"><span>Properties</span><span class="dock-head-note" id="props-note"></span></div>
+      <div id="inspector"></div>
+    </aside>
+  </main>
+
+  <footer class="statusbar" id="status"></footer>
+</div>
+
+<dialog id="file-dialog" class="dialog" aria-labelledby="file-title">
+  <div class="dialog-head">
+    <h2 id="file-title">Export JSON</h2>
+    <button type="button" class="icon-btn" id="file-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body">
+    <p class="muted">The whole robot as JSON: every part, its D-H parameters, gearbox stack and joint angle.
+      Copy or download it to save. To load a project, paste it here or open a file.</p>
+    <textarea id="file-text" spellcheck="false" aria-label="Project JSON"></textarea>
+    <p class="error" id="file-error" role="alert"></p>
+  </div>
+  <div class="dialog-foot">
+    <label class="btn">Open file&hellip;<input type="file" id="file-input" accept=".json,application/json" hidden></label>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="file-copy">Copy</button>
+    <button type="button" class="btn" id="file-download">Download .json</button>
+    <button type="button" class="btn btn-primary" id="file-load">Load from text</button>
+    <button type="button" class="btn" id="file-cancel">Close</button>
+  </div>
+</dialog>
+
+<dialog id="tree-dialog" class="dialog tree-dialog" aria-labelledby="tree-title">
+  <div class="dialog-head">
+    <h2 id="tree-title">Assembly tree</h2>
+    <button type="button" class="icon-btn" id="tree-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body"><div id="tree-diagram"></div></div>
+</dialog>
+<dialog id="export-dialog" class="dialog export-dialog" aria-labelledby="export-title">
+  <div class="dialog-head"><h2 id="export-title">Export STEP</h2>
+    <button type="button" class="icon-btn" id="export-close" aria-label="Close">&times;</button></div>
+  <div class="dialog-body">
+    <p id="export-step">Getting ready&hellip;</p>
+    <progress id="export-progress" max="1" value="0"></progress>
+    <p class="muted" id="export-detail"></p>
+    <p class="export-note"><strong>Note:</strong> the full model may still have small mechanical bugs. The actuator design is still being refined.</p>
+  </div>
+  <div class="dialog-foot">
+    <button type="button" class="btn" id="export-again" hidden>Download again</button>
+    <button type="button" class="btn btn-primary" id="export-done">Close</button>
+  </div>
+</dialog>
+<dialog id="data-dialog" class="dialog data-dialog" aria-labelledby="data-title">
+  <div class="dialog-head">
+    <h2 id="data-title">Robot data</h2>
+    <button type="button" class="icon-btn" id="data-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body" id="data-body"></div>
+</dialog>
+<!-- Examples, by category. Opens after the tutorial on page load and from Examples. Cards come from js/examples.js. -->
+<dialog id="start-dialog" class="dialog start-dialog" aria-labelledby="start-title">
+  <div class="dialog-head">
+    <h2 id="start-title">Examples</h2>
+    <button type="button" class="icon-btn" id="start-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body">
+    <div class="start-grid" id="start-grid"></div>
+    <p class="muted" id="start-note"></p>
+  </div>
+</dialog>
+<dialog id="keys-dialog" class="dialog keys-dialog" aria-labelledby="keys-title">
+  <div class="dialog-head">
+    <h2 id="keys-title">Keyboard shortcuts</h2>
+    <button type="button" class="icon-btn" id="keys-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body" id="keys-body"></div>
+</dialog>

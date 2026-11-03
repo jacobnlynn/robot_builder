@@ -485,7 +485,7 @@ function simInspector() {
       <p class="muted">Grab any part in the view and pull it. The joints between the base and that part
       turn to follow, each no faster than its top speed: the motor speed divided by its gear reduction,
       so more reduction means a slower joint.
-      Switch back to Model, CAD or Simplified to keep building.</p>
+      Switch back to Build, CAD or Simplified to keep building.</p>
     </div>
     <div class="insp-section insp-body">
       ${acts.length ? `<table class="data-table sim-table">

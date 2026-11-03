@@ -1,0 +1,38 @@
+/* Pro, dark (the default). Colours only; pro.css holds the layout. */
+:root {
+  color-scheme: dark;
+  --bg: #1b1e22;
+  --chrome: #16181b;
+  --ribbon: #23272c;
+  --panel: #23272c;
+  --panel-head: #1f2226;
+  --panel-sunk: #1b1e22;
+  --row-hover: #2b3036;
+  --viewport: #2b2f36;
+  --line: #343a41;
+  --line-strong: #464d57;
+  --ink: #e3e6ea;
+  --ink-2: #c3c9d1;
+  --muted: #959eab;
+  --accent: #5b9cf0;
+  --accent-ink: #8dbdf6;
+  --accent-soft: rgb(91 156 240 / 0.16);
+  --sel: #e39b3a;
+  --sel-ink: #f6dcb6;
+  --sel-soft: #3a3226;
+  --danger: #f0857a;
+  --danger-soft: #3a2523;
+  --danger-line: #6b3a36;
+  --overlay: rgb(22 24 27 / 0.82);
+  --shadow-float: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.45);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ax-x: #e5675c;
+  --ax-y: #6cc070;
+  --ax-z: #5c9ded;
+  --tl-0: #e39b3a;
+  --tl-1: #6aa8f2;
+  --tl-2: #7ec2a8;
+  --tl-3: #d68ad0;
+  --tl-4: #c9c36a;
+  --tl-5: #9aa4b0;
+}
