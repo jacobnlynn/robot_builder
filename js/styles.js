@@ -1,4 +1,4 @@
-// Style choices (in the ? menu): switch the whole site between visual themes. A theme is a stylesheet loaded after
+// Themes (in the Tutorial & theme menu): switch the whole site between visual themes. A theme is a stylesheet loaded after
 // style.css (it only overrides it) plus, optionally, colours for the 3D view. Retro is the default;
 // the choice is remembered in this browser.
 import * as store from './robot.js';
@@ -34,6 +34,13 @@ export const THEMES = {
     colors: {
       scene: { background: 0x1d2b53, select: 0xe8c547, seam: 0x1d2b53, simpleLine: 0xd4d7de, simpleJoint: 0x29adff },
     },
+  },  cga: {
+    label: 'CGA',
+    css: 'css/theme-cga.css',
+    // The 3D view renders as usual, on black, with a magenta selection.
+    colors: {
+      scene: { background: 0x000000, select: 0xff55ff, seam: 0x000000, simpleLine: 0x55ffff, simpleJoint: 0xff55ff },
+    },
   },
 };
 export const DEFAULT_THEME = 'retro';
@@ -63,7 +70,7 @@ function renderMenu() {
   for (const item of document.querySelectorAll('[data-style]')) item.setAttribute('aria-checked', String(item.dataset.style === current));
 }
 
-/** Fills the Style group of the ? menu; js/menus.js opens and closes the menu. */
+/** Fills the Theme group of the Tutorial & theme menu; js/menus.js opens and closes the menu. */
 export function initStyles(viewer) {
   const list = document.getElementById('style-list');
   list.innerHTML = Object.entries(THEMES).map(([k, t]) => `<button type="button" class="style-option" role="menuitemradio" data-style="${k}" aria-checked="false">

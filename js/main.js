@@ -26,7 +26,7 @@ setCadListener(() => { viewer.redraw(); store.emit('view'); });
 // Open on the first example.
 store.load(EXAMPLES[0].data);
 viewer.fit();
-// Style choices in the ? menu: Retro (default), Normal (Datasheet), Risograph. After the first robot loads, so it can redraw.
+// Themes in the Tutorial & theme menu: Retro (default), Normal (Datasheet), Risograph, Pixel, CGA. After the first robot loads, so it can redraw.
 initStyles(viewer);
 // Guided tour: opens every time the site opens, and from ? > Tutorial. When it closes the first
 // time, the start screen offers the examples.

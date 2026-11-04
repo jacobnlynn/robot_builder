@@ -633,7 +633,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .menu-list { min-width: 250px; }
 .menu-sep { margin: 4px 2px; border-top: 1px solid var(--line); }
 .menu-label { padding: 4px 10px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
-#btn-menu-help { min-width: 32px; font-weight: 700; }
+#btn-menu-help { white-space: nowrap; }
 
 /* Start screen (the Examples button) */
 .dialog.start-dialog { width: min(1240px, calc(100vw - 32px)); }

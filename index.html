@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=Karla:wght@400;600;700&family=Rubik+Mono+One&family=Space+Mono:wght@400;700&family=Pixelify+Sans:wght@400;500;700&family=Silkscreen&family=VT323&display=swap">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/theme-retro.css" id="theme-css"> <!-- theme stylesheet: Retro by default; the Style menu (js/styles.js) swaps it -->
+<link rel="stylesheet" href="css/theme-retro.css" id="theme-css"> <!-- theme stylesheet: Retro by default; the Tutorial &amp; theme menu (js/styles.js) swaps it -->
 <script type="importmap">
 {
   "imports": {
@@ -49,11 +49,11 @@
     </div>
     <input type="file" id="import-input" accept=".json,application/json" hidden>
     <div class="style-menu menu">
-      <button type="button" class="btn" id="btn-menu-help" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-help" aria-label="Help and style" title="Tutorial and style">?</button>
-      <div class="style-list menu-list" id="menu-help" role="menu" aria-label="Help and style" hidden>
+      <button type="button" class="btn" id="btn-menu-help" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-help" title="The guided tour, and the site's look">Tutorial &amp; theme</button>
+      <div class="style-list menu-list" id="menu-help" role="menu" aria-label="Tutorial and theme" hidden>
         <button type="button" class="style-option" role="menuitem" id="btn-tour"><span class="style-name">Tutorial</span><span class="style-note">Take the guided tour of the site</span></button>
         <div class="menu-sep" role="separator"></div>
-        <div class="menu-label">Style</div>
+        <div class="menu-label">Theme</div>
         <div id="style-list" role="group" aria-label="Style"></div>
       </div>
     </div>

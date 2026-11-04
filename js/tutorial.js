@@ -1,5 +1,5 @@
 // Guided tour: a small window that walks through the site, with an arrow pointing at the button
-// or panel it is talking about. It opens every time the site opens, and from ? > Tutorial. Every step sets up everything it needs from scratch, so Back always works,
+// or panel it is talking about. It opens every time the site opens, and from Tutorial & theme > Tutorial. Every step sets up everything it needs from scratch, so Back always works,
 // including through the steps that build the example arm piece by piece.
 import * as THREE from 'three';
 import * as store from './robot.js';
@@ -195,7 +195,7 @@ const STEPS = [
     target: '#btn-menu-file',
     text: `<p>Import/Export &gt; Export URDF saves your robot for simulation: a robot.urdf with its joints, limits, torques and masses,
       plus the meshes. Load it in MuJoCo (or Gazebo, PyBullet, Isaac Sim) to test it before you build it.</p>
-      <p>That's the tour. Start your own with New, and replay the tour any time from the ? menu. Happy building!</p>`,
+      <p>That's the tour. Start your own with New, and replay the tour any time from Tutorial &amp; theme. Happy building!</p>`,
     setup: (ctx) => { if (!last('link') || last('link').name !== 'Forearm') armStep(4, null)(ctx); store.setView('cad'); },
   },
 ];
