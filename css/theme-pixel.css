@@ -142,7 +142,7 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--px-gray);
 
 /* 3D view overlays */
 .vp-legend, .vp-tools { border: 0; background: var(--px-cream); box-shadow: var(--px3); color: var(--ink); font-size: 13px; }
-.vp-hint { color: var(--px-sky-l); font-size: 13px; }
+.vp-hint { color: var(--px-navy); font-size: 13px; } /* the 3D view is light */
 .swatch, .chip { border-radius: 0; }
 .swatch { box-shadow: 0 0 0 1px var(--px-navy); }
 

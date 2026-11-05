@@ -119,7 +119,7 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--cga-white
 
 /* 3D view overlays */
 .vp-legend, .vp-tools { border: 2px solid var(--cga-cyan); background: var(--cga-black); color: var(--cga-cyan); font-size: 17px; }
-.vp-hint { color: var(--cga-white); font-size: 17px; }
+.vp-hint { padding: 0 6px; background: var(--cga-black); color: var(--cga-white); font-size: 17px; } /* the 3D view is light */
 .swatch, .chip { border-radius: 0; }
 
 /* ---- Assembly ---- */
