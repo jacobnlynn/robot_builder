@@ -10,6 +10,7 @@
 // Placements are written the way Fusion 360 writes its own assemblies (a pair of axis placements per
 // instance), in inches like the module files, Y-up, at the current joint angles.
 import * as THREE from 'three';
+import { ConvexHull } from 'three/addons/math/ConvexHull.js';
 import { state } from './robot.js';
 import { forwardKinematics } from './kinematics.js';
 import { hooks, STEP_FILES, CAD_UP, actuatorCadKeys } from './viewer.js';
@@ -43,17 +44,85 @@ function occHelpers(oc) {
   };
   const moved = (shape, m) => new oc.BRepBuilderAPI_Transform_2(shape, trsf(m), true).Shape();
   const list = (shapes) => { const l = new oc.TopTools_ListOfShape_1(); shapes.forEach((s) => l.Append_1(s)); return l; };
-  const boolean = (Op, args, tools) => {
+  const solids = (shape) => {
+    let k = 0;
+    for (const ex = new oc.TopExp_Explorer_2(shape, oc.TopAbs_ShapeEnum.TopAbs_SOLID, oc.TopAbs_ShapeEnum.TopAbs_SHAPE); ex.More(); ex.Next()) k++;
+    return k;
+  };
+  const boolean = (Op, args, tools, fuzz = FUZZ) => {
     const b = new Op();
     b.SetArguments(list(args));
     b.SetTools(list(tools));
+    if (fuzz) b.SetFuzzyValue(fuzz);
     b.Build(progress(oc));
     if (!b.IsDone()) throw new Error('boolean');
     return b.Shape();
   };
-  const fuse = (shapes) => (shapes.length === 1 ? shapes[0] : boolean(oc.BRepAlgoAPI_Fuse_1, [shapes[0]], shapes.slice(1)));
-  const cut = (body, tools) => (tools.length ? boolean(oc.BRepAlgoAPI_Cut_1, [body], tools) : body);
-  return { pnt, dir, ax2, trsf, moved, fuse, cut };
+  const volume = (shape) => {
+    const g = new oc.GProp_GProps_1();
+    oc.BRepGProp.VolumeProperties_1(shape, g, false, false, false);
+    return g.Mass();
+  };
+  // How far apart two shapes are (0 when they touch, or when one sits inside the other).
+  const distance = (a, b) => {
+    const d = new oc.BRepExtrema_DistShapeShape_2(a, b, oc.Extrema_ExtFlag.Extrema_ExtFlag_MIN, oc.Extrema_ExtAlgo.Extrema_ExtAlgo_Grad, progress(oc));
+    return !d.IsDone() || d.InnerSolution() ? 0 : d.Value();
+  };
+  // One join, checked: the result must hold at least the bigger of the two and at most both, and
+  // pieces that overlap must merge into one solid. Faces that lie exactly on top of each other (tubes
+  // leaving one motor along the same axis) can defeat the kernel, so a failed join is retried with
+  // the piece nudged by a hundredth of a millimetre, then with a looser tolerance.
+  const NUDGES = [[0, 0, 0], [0.01, 0.007, 0.004], [-0.006, 0.01, -0.008]];
+  const join = (a, s, fuzzyFirst) => {
+    const va = volume(a), vs = volume(s), na = solids(a);
+    // Tubes join best exactly (a tolerance can make the kernel drop overlap: the humanoid's elbow lost
+    // a fifth of its volume); the connectors, read from STEP files, need one (exactly, they can hang).
+    const exact = NUDGES.map((d) => [d, 0]), fuzzy = NUDGES.map((d) => [d, FUZZ]);
+    const tries = [...(fuzzyFirst ? [...fuzzy, ...exact] : [...exact, ...fuzzy]), [[0, 0, 0], 0.01]];
+    for (const [[dx, dy, dz], fuzz] of tries) {
+      try {
+        const piece = dx || dy || dz ? moved(s, new THREE.Matrix4().makeTranslation(dx, dy, dz)) : s;
+        const r = boolean(oc.BRepAlgoAPI_Fuse_1, [a], [piece], fuzz), v = volume(r), n = solids(r);
+        const overlaps = v < (va + vs) * 0.999;
+        // A piece that seems to land apart from the rest must really not touch it: the kernel can
+        // miss a ball sitting inside another ball and keep the two as separate solids.
+        const apart = !overlaps && n > na && distance(a, piece) > 1e-3;
+        if (n && v >= Math.max(va, vs) * 0.999 && v <= (va + vs) * 1.001 && (n <= na || apart)) return r;
+      } catch { /* try the next way */ }
+    }
+    return null;
+  };
+  // Joined one at a time: given many touching shapes at once, the kernel can quietly return a
+  // fraction of them (the hexapod body lost its tubes) or nothing (square tubes). A piece that
+  // won't join yet is tried again once the rest are on; one that never joins is an error.
+  const fuse = (shapes, fuzzyFirst = false) => {
+    shapes = shapes.filter(Boolean);
+    if (!shapes.length) return null;
+    let out = shapes[0], todo = shapes.slice(1);
+    while (todo.length) {
+      const failed = [];
+      for (const s of todo) { const r = join(out, s, fuzzyFirst); if (r) out = r; else failed.push(s); }
+      if (failed.length === todo.length) throw new Error(`${failed.length} of ${shapes.length} pieces could not be joined`);
+      todo = failed;
+    }
+    return out;
+  };
+  const cut = (body, tools) => {
+    if (!body || !tools.length) return body;
+    const out = boolean(oc.BRepAlgoAPI_Cut_1, [body], tools);
+    if (!solids(out)) throw new Error('the result was empty');
+    // Drop the specks the cut can leave (solids of almost no volume where a cut grazes a face).
+    const keep = [];
+    for (const ex = new oc.TopExp_Explorer_2(out, oc.TopAbs_ShapeEnum.TopAbs_SOLID, oc.TopAbs_ShapeEnum.TopAbs_SHAPE); ex.More(); ex.Next()) {
+      if (volume(ex.Current()) >= 1) keep.push(ex.Current());
+    }
+    if (keep.length === solids(out) || !keep.length) return out;
+    const bb = new oc.BRep_Builder(), compound = new oc.TopoDS_Compound();
+    bb.MakeCompound(compound);
+    keep.forEach((k) => bb.Add(compound, k));
+    return compound;
+  };
+  return { pnt, dir, ax2, trsf, moved, fuse, cut, seen: new Set() };
 }
 
 // Connector solids, read once from their STEP files (mm, turned Z-up).
@@ -70,24 +139,63 @@ async function connectorShape(oc, key) {
   return connectorShapes.get(key);
 }
 
+/** A convex hull of points as a closed OpenCascade solid (its triangles sewn into a shell). */
+function hullSolid(oc, h, pts) {
+  const hull = new ConvexHull().setFromPoints(pts.map((p) => new THREE.Vector3(...p)));
+  const sew = new oc.BRepBuilderAPI_Sewing(1e-6, true, true, true, false);
+  for (const f of hull.faces) {
+    const poly = new oc.BRepBuilderAPI_MakePolygon_1();
+    let e = f.edge;
+    do { poly.Add_1(h.pnt(e.head().point)); e = e.next; } while (e !== f.edge);
+    poly.Close();
+    sew.Add(new oc.BRepBuilderAPI_MakeFace_15(poly.Wire(), true).Face());
+  }
+  sew.Perform(progress(oc));
+  const solid = new oc.BRepBuilderAPI_MakeSolid_3(oc.TopoDS.Shell_1(sew.SewedShape())).Solid();
+  // The sewn faces can come out facing inwards, which makes an inside-out solid (negative volume)
+  // that the booleans then subtract instead of add.
+  const g = new oc.GProp_GProps_1();
+  oc.BRepGProp.VolumeProperties_1(solid, g, false, false, false);
+  if (g.Mass() < 0) solid.Reverse();
+  return solid;
+}
+
+// Cubes are made this much bigger than the square tube they cap, so their faces never lie exactly
+// on the tube's: the kernel's booleans can fail on faces that coincide.
+const GROW = 0.02; // mm
+const SGROW = 0.1; // mm: balls, so they cut through a round tube instead of touching it tangentially
+// A join's tolerance (gaps this small count as touching): first choice for the connectors, a
+// fallback for the tubes (see join in occHelpers).
+const FUZZ = 0.001; // mm
+
 /** One plan item (see linkfill.js partPlan) as an OpenCascade solid, or a list of them. */
 function toSolid(oc, h, p, connectors) {
   const { pnt, ax2, moved } = h;
-  const sphere = (c, r) => new oc.BRepPrimAPI_MakeSphere_5(pnt(c), r).Shape();
+  // The same ball or cube can come up twice (a collar's tip and the tube's end): make it once.
+  const once = (key, make) => {
+    if (h.seen.has(key)) return [];
+    h.seen.add(key);
+    return [make()];
+  };
+  const key = (t, c, r) => `${t}:${c.x.toFixed(4)},${c.y.toFixed(4)},${c.z.toFixed(4)},${r}`;
+  const sphere = (c, r) => once(key('sphere', c, r), () => new oc.BRepPrimAPI_MakeSphere_5(pnt(c), r + SGROW).Shape());
   const cylinder = (base, along, r, len) => new oc.BRepPrimAPI_MakeCylinder_3(ax2(base, along), r, len).Shape();
   const box = (origin, x, z, dx, dy, dz) => new oc.BRepPrimAPI_MakeBox_5(ax2(origin, z, x), dx, dy, dz).Shape();
-  const cube = (c, basis, r) => {
+  // A tube of no length (a passive part whose ball sits where it starts) has no direction: the CAD
+  // tab leaves its cube out, and so does this.
+  const cube = (c, basis, r0) => (basis.some((e) => !(e.lengthSq() > 1e-12)) ? [] : once(key('cube', c, r0), () => {
+    const r = r0 + GROW;
     const [x, , z] = basis, y = new THREE.Vector3().crossVectors(z, x);
     return box(c.clone().addScaledVector(x, -r).addScaledVector(y, -r).addScaledVector(z, -r), x, z, 2 * r, 2 * r, 2 * r);
-  };
+  }));
   const atFrame = (frame, z) => new THREE.Vector3(0, 0, z).applyMatrix4(frame);
   const frameZ = (frame) => new THREE.Vector3().setFromMatrixColumn(frame, 2).normalize();
   switch (p.t) {
-    case 'ball': case 'sphere': return [sphere(p.c, p.r)];
-    case 'cube': return [cube(p.c, p.basis, p.r)];
+    case 'ball': case 'sphere': return sphere(p.c, p.r);
+    case 'cube': return cube(p.c, p.basis, p.r);
     case 'capsule': {
       const v = p.b.clone().sub(p.a), len = v.length();
-      return [cylinder(p.a, v.normalize(), p.r, len), sphere(p.a, p.r), sphere(p.b, p.r)];
+      return [cylinder(p.a, v.normalize(), p.r, len), ...sphere(p.a, p.r), ...sphere(p.b, p.r)];
     }
     case 'bar': {
       const along = p.b.clone().sub(p.a), len = along.length();
@@ -98,41 +206,42 @@ function toSolid(oc, h, p, connectors) {
     }
     case 'disc': return [cylinder(atFrame(p.frame, p.z0), frameZ(p.frame), p.r, p.z1 - p.z0)];
     case 'collar': {
-      // The disc, then a taper from its face nearest the tip to the tip.
-      const zAxis = frameZ(p.frame);
-      const disc = cylinder(atFrame(p.frame, p.z0), zAxis, p.r, p.z1 - p.z0);
-      const towards = p.tip.c.clone().sub(atFrame(p.frame, 0)).dot(zAxis) >= (p.z0 + p.z1) / 2;
-      const base = atFrame(p.frame, towards ? p.z1 : p.z0);
-      const toTip = p.tip.c.clone().sub(base);
-      const len = toTip.length();
-      toTip.normalize();
-      if (p.tip.t === 'ball') return [disc, new oc.BRepPrimAPI_MakeCone_3(ax2(base, toTip), p.r, p.tip.r, len).Shape(), sphere(p.tip.c, p.tip.r)];
-      // Square tip: loft the circle to the cube face that looks back at the disc.
-      const [e] = [...p.tip.basis].sort((a, b) => Math.abs(b.dot(toTip)) - Math.abs(a.dot(toTip)));
-      const n = e.clone().multiplyScalar(-Math.sign(e.dot(toTip)) || -1);
-      const [u, v] = p.tip.basis.filter((x) => x !== e);
-      const fc = p.tip.c.clone().addScaledVector(n, p.tip.r);
-      const corners = [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => fc.clone().addScaledVector(u, a * p.tip.r).addScaledVector(v, b * p.tip.r));
-      try {
-        const poly = new oc.BRepBuilderAPI_MakePolygon_1();
-        corners.forEach((c) => poly.Add_1(pnt(c)));
-        poly.Close();
-        const ring = new oc.BRepBuilderAPI_MakeWire_2(new oc.BRepBuilderAPI_MakeEdge_8(new oc.gp_Circ_2(ax2(base, toTip), p.r)).Edge()).Wire();
-        const loft = new oc.BRepOffsetAPI_ThruSections(true, true, 1e-6);
-        loft.AddWire(ring);
-        loft.AddWire(poly.Wire());
-        loft.Build(progress(oc));
-        return [disc, loft.Shape(), cube(p.tip.c, p.tip.basis, p.tip.r)];
-      } catch {
-        // If the loft fails, taper to the cube's inscribed circle instead.
-        return [disc, new oc.BRepPrimAPI_MakeCone_3(ax2(base, toTip), p.r, p.tip.r, len).Shape(), cube(p.tip.c, p.tip.basis, p.tip.r)];
+      // An exact disc (the face that meets the connector stays a true circle), and the taper from it
+      // to the tip as the convex hull of points just inside the disc's rims and the tip. Kept a
+      // twentieth of a millimetre inside, the hull never lies on the disc's faces: the kernel can hang
+      // on a polygon lying almost exactly on a circle.
+      const disc = cylinder(atFrame(p.frame, p.z0), frameZ(p.frame), p.r, p.z1 - p.z0);
+      const IN = 0.05, ri = p.r - IN;
+      const ring = (z) => Array.from({ length: 64 }, (_, k) => {
+        const a = (k / 64) * Math.PI * 2;
+        return new THREE.Vector3(ri * Math.cos(a), ri * Math.sin(a), z).applyMatrix4(p.frame).toArray();
+      });
+      const rims = [...ring(p.z0 + IN), ...ring(p.z1 - IN)];
+      if (p.tip.t === 'ball') {
+        // The convex hull of the disc and the ball, as the CAD tab makes it (a cone aimed at the
+        // ball's centre can miss the tube entirely when the tube leaves at an angle), plus the
+        // ball itself so its outside stays round.
+        const pts = [...rims];
+        for (let i = 1; i < 12; i++) for (let j = 0; j < 24; j++) {
+          const th = (i / 12) * Math.PI, ph = (j / 24) * Math.PI * 2;
+          pts.push([p.tip.c.x + p.tip.r * Math.sin(th) * Math.cos(ph), p.tip.c.y + p.tip.r * Math.sin(th) * Math.sin(ph), p.tip.c.z + p.tip.r * Math.cos(th)]);
+        }
+        pts.push([p.tip.c.x, p.tip.c.y, p.tip.c.z + p.tip.r], [p.tip.c.x, p.tip.c.y, p.tip.c.z - p.tip.r]);
+        return [disc, hullSolid(oc, h, pts), ...sphere(p.tip.c, p.tip.r)];
       }
+      // Square tip: the convex hull of the disc and the cube, exactly as the CAD tab makes it. (A loft
+      // from the circle to the cube's near face came out smaller, and the kernel often failed to join it.)
+      h.seen.add(key('cube', p.tip.c, p.tip.r)); // inside the hull: the tube's own end cube is not needed
+      const r = p.tip.r + GROW, [bx, by, bz] = p.tip.basis, corners = [];
+      for (const a of [-r, r]) for (const b of [-r, r]) for (const d of [-r, r]) {
+        corners.push(p.tip.c.clone().addScaledVector(bx, a).addScaledVector(by, b).addScaledVector(bz, d).toArray());
+      }
+      return [disc, hullSolid(oc, h, [...rims, ...corners])];
     }
-    case 'hull': {
-      // OpenCascade has no convex hull; the bounding box of the points is a safe, slightly larger cut.
-      const b = new THREE.Box3().setFromArray(p.pts.flat());
-      return [moved(new oc.BRepPrimAPI_MakeBox_4(pnt(b.min), pnt(b.max)).Shape(), p.frame)];
-    }
+    case 'hull':
+      // The motor's real envelope, as in the CAD tab. (A bounding box is far bigger than an L-shaped
+      // motor and cut away the tubes of a part with motors bolted all round it, like the hexapod body.)
+      return [moved(hullSolid(oc, h, p.pts), p.frame)];
     case 'input': return [moved(connectors.input, p.m)];
     case 'output': return [moved(connectors.output, p.m)];
     default: throw new Error(`Unknown piece ${p.t}`);
@@ -143,15 +252,20 @@ function toSolid(oc, h, p, connectors) {
 async function linkSolid(oc, plan) {
   const h = occHelpers(oc);
   const connectors = { input: await connectorShape(oc, 'input'), output: await connectorShape(oc, 'output') };
-  const make = (items) => items.flatMap((p) => toSolid(oc, h, p, connectors));
+  // Every tube of a part brings its own copy of the input collar; the kernel's booleans break on
+  // exact duplicates (the hexapod body lost most of its volume), so each distinct item is made once.
+  const r4 = (_, v) => (typeof v === 'number' ? Math.round(v * 1e4) / 1e4 : v);
+  const make = (items) => {
+    h.seen.clear();
+    const keys = new Set();
+    return items.filter((p) => { const k = JSON.stringify(p, r4); return !keys.has(k) && keys.add(k); })
+      .flatMap((p) => toSolid(oc, h, p, connectors));
+  };
   let body = occTry('Joining the tubes', () => h.fuse(make(plan.pieces)));
   body = occTry('Cutting clearance around the motors', () => h.cut(body, plan.cuts.length ? [h.fuse(make(plan.cuts))] : []));
-  body = occTry('Joining the connectors', () => h.fuse([body, ...make(plan.connectors)]));
-  try {
-    const tidy = new oc.ShapeUpgrade_UnifySameDomain_2(body, true, true, false);
-    tidy.Build();
-    body = tidy.Shape();
-  } catch { /* keep it as fused */ }
+  body = occTry('Joining the connectors', () => h.fuse([body, ...make(plan.connectors)], true));
+  if (!body) throw new Error('This part has nothing to export.');
+  // (No ShapeUpgrade_UnifySameDomain tidy-up: merging faces could hang the kernel on some parts.)
   return h.moved(body, toFileUp);
 }
 
