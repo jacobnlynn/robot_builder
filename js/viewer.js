@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES, PASSIVE, WHEEL } from './constants.js';
-import { isCapped, isPassive, isWheel, isMotionView, loopAt, node as partById } from './robot.js';
+import { FAMILY_COLORS, OUTPUT_FLANGE, LINK, MOTORS, GEARBOXES, PASSIVE } from './constants.js';
+import { isCapped, isPassive, isMotionView, loopAt, node as partById } from './robot.js';
 
 // Robotics convention: Z is up. Must be set before any camera or light is created.
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
@@ -68,33 +68,6 @@ function passiveMarker(o, m, material, scale = 1) {
   return mesh(cylinderZ(PASSIVE.hingeRadius * scale, h, -h / 2), material, m);
 }
 
-/**
- * A classic wheel on output frame m (its axle along z, centred on the output): a black tyre with
- * rounded shoulders round a coloured rim and hub, with a dark cap on the hub. `simple` draws it as
- * a flat disc in `color` (the Simplified view).
- */
-function wheelMesh(w, m, selected, simple = null) {
-  const R = w.radius, W = w.width;
-  const g = new THREE.Group();
-  g.matrixAutoUpdate = false;
-  g.matrix.copy(m);
-  if (simple) { g.add(mesh(cylinderZ(R, Math.min(W, 6), -Math.min(W, 6) / 2, 40), simple)); return g; }
-  const T = Math.min(WHEEL.tyre, R * 0.4), ri = R - T, c = Math.min(T, W) * 0.35;
-  // Tyre: a lathe of its cross-section (a rectangle with rounded outer corners), turned to lie along z.
-  const prof = [new THREE.Vector2(ri, -W / 2)];
-  for (let k = 0; k <= 6; k++) { const a = -Math.PI / 2 + (k / 6) * (Math.PI / 2); prof.push(new THREE.Vector2(R - c + c * Math.cos(a), -W / 2 + c + c * Math.sin(a))); }
-  for (let k = 0; k <= 6; k++) { const a = (k / 6) * (Math.PI / 2); prof.push(new THREE.Vector2(R - c + c * Math.cos(a), W / 2 - c + c * Math.sin(a))); }
-  prof.push(new THREE.Vector2(ri, W / 2), new THREE.Vector2(ri, -W / 2));
-  const tyre = new THREE.LatheGeometry(prof, 64).rotateX(Math.PI / 2);
-  g.add(mesh(tyre, surface(WHEEL.tyreColor, selected)));
-  // Rim (inside the tyre, a little narrower) and a raised hub with a dark cap.
-  const hub = surface(WHEEL.hubColor, selected);
-  g.add(mesh(cylinderZ(ri + 0.5, W * 0.8, -W * 0.4, 64), hub));
-  g.add(mesh(cylinderZ(ri * 0.38, W * 0.96, -W * 0.48, 40), hub));
-  g.add(mesh(cylinderZ(ri * 0.18, W + 2, -W / 2 - 1, 32), surface(COLORS.seam, selected)));
-  return g;
-}
-
 function surface(color, selected) {
   return new THREE.MeshStandardMaterial({
     color,
@@ -143,8 +116,7 @@ export function buildCadPart(node, kin, selected = false) {
       add(g, rod(ORIGIN, elbow, LINK.radius, mat));
       add(g, rod(elbow, end, LINK.radius, mat));
       g.add(ball(elbow, LINK.radius, mat));
-      if (isWheel(node, i)) { g.add(ball(end, LINK.radius, mat)); g.add(wheelMesh(o.wheel, kin.outputs[i], selected)); }
-      else if (isCapped(node, i)) g.add(ball(end, o.sphere, mat));
+      if (isCapped(node, i)) g.add(ball(end, o.sphere, mat));
       else if (isPassive(node, i)) {
         g.add(ball(end, LINK.radius, mat));
         g.add(passiveMarker(o, kin.outputs[i], surface(PASSIVE.color, selected)));
@@ -327,17 +299,12 @@ function buildShellPart(node, kin, selected = false) {
     const g = new THREE.Group();
     if (!node.parent) return g; // the base is the world anchor; nothing to draw
     // Passive joints have no CAD model yet: they are drawn as their small markers.
-    // Wheels are drawn in their own colours, on the filled part (which holds the wheel's hub boss).
-    const joints = () => kin.outputs.forEach((m, i) => {
-      if (isPassive(node, i)) g.add(passiveMarker(node.outputs[i], m, surface(PASSIVE.color, selected)));
-      if (isWheel(node, i)) g.add(wheelMesh(node.outputs[i].wheel, m, selected));
-    });
+    const joints = () => kin.outputs.forEach((m, i) => { if (isPassive(node, i)) g.add(passiveMarker(node.outputs[i], m, surface(PASSIVE.color, selected))); });
     const filled = hooks.linkFill?.(node, kin);
     if (filled) { g.add(shellMesh(filled, FAMILY_COLORS.link, new THREE.Matrix4(), selected)); joints(); return g; }
     const input = cadGeometry('input'), output = cadGeometry('output');
     if (input && !onPassive(node)) g.add(shellMesh(input, FAMILY_COLORS.link, new THREE.Matrix4(), selected));
     kin.outputs.forEach((m, i) => {
-      if (isWheel(node, i)) return;
       if (isCapped(node, i)) g.add(ball(new THREE.Vector3().setFromMatrixPosition(m), node.outputs[i].sphere, surface(FAMILY_COLORS.link, selected)));
       else if (!isPassive(node, i) && output) g.add(shellMesh(output, FAMILY_COLORS.link, m, selected));
     });
@@ -389,8 +356,7 @@ function buildSimplePart(node, kin, selected = false) {
       add(g, rod(ORIGIN, elbow, 2.5, line));
       add(g, rod(elbow, end, 2.5, line));
       g.add(ball(elbow, 2.5, line));
-      if (isWheel(node, i)) g.add(wheelMesh(node.outputs[i].wheel, kin.outputs[i], false, surface(selected ? COLORS.select : COLORS.simpleJoint, false)));
-      else if (isCapped(node, i)) g.add(ball(end, node.outputs[i].sphere, surface(selected ? COLORS.select : COLORS.simpleJoint, false)));
+      if (isCapped(node, i)) g.add(ball(end, node.outputs[i].sphere, surface(selected ? COLORS.select : COLORS.simpleJoint, false)));
       else if (isPassive(node, i)) g.add(passiveMarker(node.outputs[i], kin.outputs[i], surface(selected ? COLORS.select : PASSIVE.color, false), 0.6));
     });
   }

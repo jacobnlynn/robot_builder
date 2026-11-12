@@ -40,8 +40,7 @@ export function builder() {
   }
 
   /**
-   * A link whose outputs are the named motors' mounting faces, sphere ends ({ sphere, at }), wheels
-   * ({ wheel: { radius, width }, at, axis }: centred at `at`, the axle along `axis`), or
+   * A link whose outputs are the named motors' mounting faces, sphere ends ({ sphere, at }), or
    * passive joints ({ joint: 'hinge' | 'ball', at, axis, child }: a hinge turns about `axis`, and
    * `child` is the link on it, if any). Call after those motors.
    */
@@ -51,10 +50,9 @@ export function builder() {
       outputs: ends.map((e) => {
         if (typeof e === 'string') return { dh: zeroDh(), pose: { ...matrixToPose(faces[e]), ref: 'world' }, rod: { ...ROD } };
         if (e.sphere) return { dh: zeroDh(), pose: { ...matrixToPose(new THREE.Matrix4().setPosition(e.at)), ref: 'world' }, rod: { ...ROD }, end: 'sphere', sphere: e.sphere };
-        // Joint (or wheel) frame: z along the axis, x any direction square to it.
+        // Joint frame: z along the axis, x any direction square to it.
         const z = e.axis.clone().normalize(), x = new THREE.Vector3().crossVectors(Math.abs(z.z) < 0.9 ? UP : FWD, z).normalize();
         const m = new THREE.Matrix4().makeBasis(x, new THREE.Vector3().crossVectors(z, x), z).setPosition(e.at);
-        if (e.wheel) return { dh: zeroDh(), pose: { ...matrixToPose(m), ref: 'world' }, rod: { ...ROD }, end: 'wheel', wheel: { ...e.wheel } };
         return { dh: zeroDh(), pose: { ...matrixToPose(m), ref: 'world' }, rod: { ...ROD }, end: e.joint, ...(e.joint === 'hinge' ? { q: 0 } : { ball: { x: 0, y: 0, z: 0 } }) };
       }),
       children: ends.map((e) => (typeof e === 'string' ? e : e.child ?? null)),

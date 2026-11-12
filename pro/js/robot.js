@@ -1,6 +1,6 @@
 // Robot tree + app state. Every node has one input (its parent port) and an
 // array of output ports; children[i] holds the id of the part on output i.
-import { DH_CONVENTION, DEFAULT_LINK_DH, MOTORS, GEARBOXES, MIN_GEARBOXES, WHEEL } from './constants.js';
+import { DH_CONVENTION, DEFAULT_LINK_DH, MOTORS, GEARBOXES, MIN_GEARBOXES } from './constants.js';
 import { dhToMatrix, matrixToPose, solveLinks, DEFAULT_ROD } from './kinematics.js';
 
 // A link output keeps both forms; the link's `spec` ('dh' | 'pose') says which one is used.
@@ -9,9 +9,7 @@ import { dhToMatrix, matrixToPose, solveLinks, DEFAULT_ROD } from './kinematics.
 // port's z axis from +x, latitude up from its x-y plane). It shapes the rod only; the output
 // frame comes from the pose.
 // end: 'output' (a connector the next part attaches to), 'sphere' (the robot ends there in a ball
-// of radius `sphere` mm, centred on the output, and nothing can attach), 'wheel' (it ends in a
-// wheel, wheel = { radius, width } mm, centred on the output with its axle along the output's z
-// axis; nothing can attach), or a passive joint that
+// of radius `sphere` mm, centred on the output, and nothing can attach), or a passive joint that
 // only another link can attach to: 'hinge' (turns `q` degrees about the output's z axis) or 'ball'
 // (turns ball = { x, y, z } degrees: T = Rz(z) · Ry(y) · Rx(x), like a pose's angles).
 export const SPHERE_RADIUS = 20;
@@ -65,9 +63,7 @@ export function baseLink(outputs = [{ dh: { a: 0, alpha: 0, d: 0, theta: 0 } }])
 /** True for the locked base, which has no parent and can't be removed. */
 export const isFixed = (n) => !n.parent;
 /** A link output closed off with a sphere: an end of the robot, not a port. */
-export const isCapped = (n, i) => n.type === 'link' && (n.outputs[i]?.end === 'sphere' || n.outputs[i]?.end === 'wheel');
-/** True when link output i ends in a wheel. */
-export const isWheel = (n, i) => n?.type === 'link' && n.outputs[i]?.end === 'wheel';
+export const isCapped = (n, i) => n.type === 'link' && n.outputs[i]?.end === 'sphere';
 /** An output something can still be attached to. */
 export const isOpenPort = (n, i) => !n.children[i] && !isCapped(n, i) && !loopAt(n.id, i);
 /** A link output that is a passive joint (ball or hinge): only a link can attach to it. */
@@ -124,7 +120,6 @@ export function setEnd(o, end) {
   o.end = end;
   if (end === 'hinge') o.q ??= 0;
   if (end === 'ball') o.ball ??= { x: 0, y: 0, z: 0 };
-  if (end === 'wheel') o.wheel ??= { radius: WHEEL.radius, width: WHEEL.width };
 }
 const firstOpenPort = (n) => n.children.findIndex((_, i) => isOpenPort(n, i));
 

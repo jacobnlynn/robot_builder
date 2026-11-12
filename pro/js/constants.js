@@ -55,8 +55,4 @@ export const LINK = { radius: 13, flangeRadius: 26, flangeThickness: 6 };
 // Passive joints between two links (a link output that is a ball or hinge joint): drawn much
 // smaller than the motor connectors. A hinge turns about the output's z axis.
 export const PASSIVE = { color: 0xd9a21b, ballRadius: 16, hingeRadius: 8, hingeLength: 40, limit: 180 };
-// A wheel at the end of a link (a link output that ends in a wheel): centred on the output, its
-// axle along the output's z axis, so it turns with whatever turns the link. A coloured hub and
-// rim with a black tyre `tyre` mm thick round it.
-export const WHEEL = { radius: 60, width: 30, tyre: 12, hubColor: 0xc8463a, tyreColor: 0x1d1f22 };
 export const DEFAULT_LINK_DH = { a: 0, alpha: 0, d: 80, theta: 0 };

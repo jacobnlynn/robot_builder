@@ -310,7 +310,7 @@ function renderTree() {
         </div>
         ${shut ? `<ul><li><button type="button" class="tree-hidden ot-more" data-collapse="${id}">+${hiddenCount(id)} hidden</button></li></ul>`
           : `<ul>${n.children.map((c, i) => (c ? box(c) : store.isCapped(n, i) ? `<li><div class="ot-node">
-          <div class="ot-box ot-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(n, i) ? 'Wheel' : 'Sphere'}</span></div>
+          <div class="ot-box ot-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">Sphere</span></div>
         </div></li>` : `<li><div class="ot-node">
           <button type="button" class="ot-box ot-port tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
             <span class="port-dot" aria-hidden="true"></span><span class="tree-name">${n.children.length > 1 ? `Output ${i + 1}` : 'Open'}</span></button>
@@ -325,8 +325,8 @@ function renderTree() {
     ? `<li><button type="button" class="tree-port tree-joined${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
       <span class="loop-mark" aria-hidden="true">⟲</span><span class="tree-name">Joined to ${esc(portName(joined(id, i).other))}</span><span class="tree-meta">loop</span></button></li>`
     : store.isCapped(node(id), i)
-    ? `<li><div class="tree-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(node(id), i) ? 'Wheel' : 'Sphere end'}</span>
-      <span class="tree-meta">${store.isWheel(node(id), i) ? `⌀ ${len(2 * node(id).outputs[i].wheel.radius, state.units === 'in' ? 2 : 0)}` : len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}</span></div></li>`
+    ? `<li><div class="tree-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">Sphere end</span>
+      <span class="tree-meta">${len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}</span></div></li>`
     : `<li><button type="button" class="tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
       <span class="port-dot" aria-hidden="true"></span><span class="tree-name">${PORT_NAME[node(id).outputs?.[i]?.end] ?? 'Open port'}</span><span class="tree-meta">attach</span></button></li>`);
   const row = (n, fold) => `<li><div class="tree-line">${fold ? caret(n, 'tree-caret') : ''}<button type="button" class="tree-row${nodeOn(n.id) ? ' is-selected' : ''}" data-node="${n.id}">
@@ -765,7 +765,7 @@ function linkFields(d, n) {
 }
 
 /**
- * Output: a connector to keep building from, a sphere or a wheel that ends the robot there, or a passive
+ * Output: a connector to keep building from, a sphere that ends the robot there, or a passive
  * joint (ball or hinge) that the next link turns freely on. n is the live link, or null for a draft.
  */
 function endField(o, i, used, n) {
@@ -778,15 +778,11 @@ function endField(o, i, used, n) {
       <div class="tabs end-tabs" role="group" aria-label="Output ${i + 1} ends in">
         ${tab('output', 'Another output')}
         ${tab('sphere', 'Sphere end', used ? 'Delete the part on this output first' : '')}
-        ${tab('wheel', 'Wheel', used ? 'Delete the part on this output first' : '')}
         ${tab('ball', 'Ball joint', joint)}
         ${tab('hinge', 'Hinge joint', joint)}
       </div>
       ${sphere ? `<label class="end-size">Radius <input type="number" min="1" step="${unit().step}" value="${lenField(o.sphere)}" data-field="sphere" data-i="${i}">
         <span class="hint">${state.units}</span></label>` : ''}
-      ${o.end === 'wheel' ? `<div class="end-size-row">${['radius', 'width'].map((k) => `<label class="end-size">${k === 'radius' ? 'Radius' : 'Width'} <input type="number" min="1" step="${unit().step}" value="${lenField(o.wheel?.[k])}" data-field="wheel" data-key="${k}" data-i="${i}">
-        <span class="hint">${state.units}</span></label>`).join('')}</div>
-        <p class="hint">A wheel, its axle along this output’s z axis: it turns with the motor that turns this link. Nothing can attach to it.</p>` : ''}
       ${o.end === 'hinge' ? '<p class="hint">A hinge: the next link turns about this output’s z axis. Only a link can attach to it.</p>' : ''}
       ${o.end === 'ball' ? '<p class="hint">A ball joint: the next link turns freely, Rz(z) · Ry(y) · Rx(x). Only a link can attach to it.</p>' : ''}
       ${n && store.loopAt(n.id, i) ? `<p class="hint">Joined to ${esc(portName(store.loopAt(n.id, i).other))} in a closed loop.</p>`
@@ -1179,11 +1175,6 @@ function bindInspector() {
       const v = parseFloat(t.value);
       if (!Number.isFinite(v) || v <= 0) return;
       data.outputs[Number(t.dataset.i)].sphere = fromUnit(v);
-      changed(live, 'params');
-    } else if (field === 'wheel') {
-      const v = parseFloat(t.value);
-      if (!Number.isFinite(v) || v <= 0) return;
-      data.outputs[Number(t.dataset.i)].wheel[t.dataset.key] = fromUnit(v);
       changed(live, 'params');
     } else if (field === 'rod') {
       const v = parseFloat(t.value);
