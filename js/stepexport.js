@@ -242,6 +242,8 @@ function toSolid(oc, h, p, connectors) {
       // The motor's real envelope, as in the CAD tab. (A bounding box is far bigger than an L-shaped
       // motor and cut away the tubes of a part with motors bolted all round it, like the hexapod body.)
       return [moved(hullSolid(oc, h, p.pts), p.frame)];
+    // A wheel at the end of the part: its whole disc (hub, rim and tyre) as one solid.
+    case 'wheel': return [cylinder(atFrame(p.m, -p.w / 2), frameZ(p.m), p.r, p.w)];
     case 'input': return [moved(connectors.input, p.m)];
     case 'output': return [moved(connectors.output, p.m)];
     default: throw new Error(`Unknown piece ${p.t}`);

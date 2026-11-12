@@ -19,11 +19,11 @@
 // blocks loading WebAssembly from a CDN); stepexport.js builds the same plan as a STEP solid.
 // To remove the trial, delete the `import './linkfill.js'` line in main.js.
 import * as THREE from 'three';
-import { state, node, isCapped, isPassive, emit } from './robot.js';
+import { state, node, isCapped, isPassive, isWheel, emit } from './robot.js';
 import { localKinematics, forwardKinematics, rodDirection } from './kinematics.js';
 import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
 import { ConvexHull } from 'three/addons/math/ConvexHull.js';
-import { LINK, PASSIVE } from './constants.js';
+import { LINK, PASSIVE, WHEEL } from './constants.js';
 
 const MANIFOLD_URL = new URL('../vendor/manifold-3d-2.5.1/manifold.js', import.meta.url).href;
 export const PIPE = { radius: LINK.radius }; // same as the Model view's rods
@@ -110,11 +110,12 @@ function describePart(root) {
       const child = x.children[i] && node(x.children[i]);
       if (isLink(child) && !isPassive(x, i)) return visit(child, dir);
       // A passive joint ends the part in a small ball where the joint goes.
-      const sphere = isCapped(x, i) ? o.sphere : isPassive(x, i) ? PASSIVE.ballRadius : 0;
+      const wheel = isWheel(x, i) ? { ...o.wheel } : null;
+      const sphere = wheel ? 0 : isCapped(x, i) ? o.sphere : isPassive(x, i) ? PASSIVE.ballRadius : 0;
       const m = toRoot.clone().multiply(frames[x.id].outputs[i]);
       // Only where a joint's ball sits matters, not how far the joint is turned (so moving it doesn't rebuild the part).
       if (isPassive(x, i)) m.makeTranslation(new THREE.Vector3().setFromMatrixPosition(m));
-      outputs.push({ m, sphere, child, dir });
+      outputs.push({ m, sphere, wheel, child, dir });
     });
   };
   visit(root, null);
@@ -138,7 +139,7 @@ function signature(part) {
   return JSON.stringify({
     shape: part.shape,
     passiveIn: part.passiveIn,
-    outputs: part.outputs.map((o) => [o.m.elements.map(r3), o.sphere, o.dir.toArray().map(r3),
+    outputs: part.outputs.map((o) => [o.m.elements.map(r3), o.sphere, o.wheel && [o.wheel.radius, o.wheel.width], o.dir.toArray().map(r3),
       o.child?.type === 'actuator' ? [o.child.motor, o.child.gearboxes, o.child.mount] : null]),
     parent: parent.type === 'actuator' ? [parent.motor, parent.gearboxes] : null,
   });
@@ -152,7 +153,7 @@ function signature(part) {
  *   capsule {a, b, r}, bar {a, b, basis, r}, cube {c, basis, r}, ball {c, r},
  *   disc {frame, r, z0, z1} (a cylinder along frame z), collar {frame, r, z0, z1, tip} (that disc
  *   tapering to a tip: a ball or a cube), hull {pts, frame} (convex hull of points), and the
- *   connectors input {m}, output {m}, sphere {c, r}.
+ *   connectors input {m}, output {m}, sphere {c, r}, wheel {m, r, w} (centred on m, axle along its z).
  */
 export function partPlan(part) {
   const R = PIPE.radius;
@@ -177,7 +178,9 @@ export function partPlan(part) {
     const at = new THREE.Vector3().setFromMatrixPosition(o.m);
     const z = new THREE.Vector3().setFromMatrixColumn(o.m, 2).normalize();
     // The sphere itself is joined on with the connectors; otherwise stop behind the backing plate.
-    const end = o.sphere ? at : at.clone().addScaledVector(z, -COLLAR.length);
+    // A wheel's tube runs to its centre too, into the hub.
+    const capped = o.sphere || o.wheel;
+    const end = capped ? at : at.clone().addScaledVector(z, -COLLAR.length);
     // Rise along the rod direction, bend at 90° (the point on that line nearest the end), run to
     // the end; if that passes through a motor (or the space kept clear in front of a face), the
     // tube is routed round it instead, bending wherever it needs to.
@@ -195,7 +198,7 @@ export function partPlan(part) {
 
     // Input collar: a cone from the whole back face (sunk into the connector's solid top) to the tube.
     if (!part.passiveIn) pieces.push({ t: 'collar', frame: atInput, r: faceRadius, z0: -COLLAR.sink, z1: PLATE.thickness, tip: tip(start, bases[0]) });
-    if (!o.sphere) {
+    if (!capped) {
       // Output collar: the backing plate, a cone from it back to the tube, and a short plug into
       // the spigot's solid base so the plate is fused to it, not just touching.
       pieces.push({ t: 'collar', frame: o.m, r: PLATE.radius, z0: -PLATE.thickness, z1: 0, tip: tip(end, bases.at(-1)) });
@@ -212,9 +215,9 @@ export function partPlan(part) {
         else pieces.push({ t: 'hull', frame: new THREE.Matrix4(), pts: [...squareEnd(path[i], bases[i - 1], R + 0.02), ...squareEnd(path[i], bases[i], R + 0.02)] });
       }
       // Into a sphere the bar alone is enough (its corners stay inside); a cube's would poke out.
-      if (!o.sphere) pieces.push(tip(end, bases.at(-1)));
+      if (!capped) pieces.push(tip(end, bases.at(-1)));
     }
-    connectors.push(o.sphere ? { t: 'sphere', c: at, r: o.sphere } : { t: 'output', m: o.m });
+    connectors.push(o.wheel ? { t: 'wheel', m: o.m, r: o.wheel.radius, w: o.wheel.width } : o.sphere ? { t: 'sphere', c: at, r: o.sphere } : { t: 'output', m: o.m });
   }
   return { pieces, cuts, connectors };
 }
@@ -253,7 +256,7 @@ function keepOuts(part) {
     cuts.push({ t: 'disc', frame: I, r: FACE_CLEARANCE.radius, z0: -FACE_CLEARANCE.depth, z1: 0 });
   }
   for (const o of part.outputs) {
-    if (o.sphere) continue;
+    if (o.sphere || o.wheel) continue;
     cuts.push({ t: 'disc', frame: o.m, r: FACE_CLEARANCE.radius, z0: COLLAR.sink, z1: COLLAR.sink + FACE_CLEARANCE.depth });
     // A motor bolted on never moves relative to the part: cut its envelope where it sits.
     // (Lifted by the collar's sink: below that is the plug inside this part's own spigot.)
@@ -301,7 +304,7 @@ function obstacles(part, { cuts, sweep }, { faceRadius, top }) {
   }
   // The part's own connectors: the input under the start, and each output's backing plate.
   if (!part.passiveIn) disc(new THREE.Matrix4(), faceRadius, -COLLAR.sink, top);
-  for (const o of part.outputs) if (!o.sphere) disc(o.m, PLATE.radius, -PLATE.thickness, 0);
+  for (const o of part.outputs) if (!o.sphere && !o.wheel) disc(o.m, PLATE.radius, -PLATE.thickness, 0);
   const hard = (p, pad) => tests.some((t) => t(p, pad));
   const soft = (p, pad) => {
     if (!sweep) return false;
@@ -461,6 +464,12 @@ function toMesh(p) {
     case 'input': return toManifold(cadGeometry('input')).transform(p.m.elements);
     case 'output': return toManifold(cadGeometry('output')).transform(p.m.elements);
     case 'sphere': return ball(p.c, p.r);
+    case 'wheel': {
+      // Only the hub's boss: the viewer draws the wheel itself over it, in its own colours (the
+      // boss stays hidden inside the hub, so the two never overlap visibly).
+      const ri = p.r - Math.min(WHEEL.tyre, p.r * 0.4), r = ri * 0.38 - 1, h = p.w * 0.96 - 2;
+      return Manifold.cylinder(h, r, r, SEGMENTS).translate([0, 0, -h / 2]).transform(p.m.elements);
+    }
     default: throw new Error(`Unknown piece ${p.t}`);
   }
 }

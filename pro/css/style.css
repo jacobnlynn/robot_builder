@@ -574,6 +574,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .end-field { margin: 4px 0 8px; }
 .end-size { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; }
 .end-size input { width: 80px; }
+.end-size-row { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .tree-end { cursor: default; }
 .end-dot { width: 10px; height: 10px; border-radius: 50%; background: #8a97a8; box-shadow: 0 0 0 1px #000; flex: none; }
 .tree-end .tree-name { color: inherit; text-decoration: none; }

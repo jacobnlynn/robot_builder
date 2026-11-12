@@ -19,10 +19,13 @@ import { SCARA_5BAR } from './examples/scara-5bar.js';
 import { BIPED_LINKAGE } from './examples/biped-linkage.js';
 import { PAN_TILT } from './examples/pan-tilt.js';
 import { PARALLELOGRAM } from './examples/parallelogram.js';
+import { ROVER } from './examples/rover.js';
+import { MOBILE_MANIPULATOR } from './examples/mobile-manipulator.js';
 
 /** Start screen sections: [key, heading]. */
 export const CATEGORIES = [
   ['legged', 'Legged robots'],
+  ['wheeled', 'Wheeled robots'],
   ['arms', 'Arms'],
   ['mechanisms', 'Simple mechanisms'],
 ];
@@ -36,6 +39,8 @@ export const EXAMPLES = [
   { id: 'biped-linkage', category: 'legged', label: 'Biped (linkage ankles)', blurb: 'Ankle motors up the shin push the foot through two rods', data: BIPED_LINKAGE },
   { id: 'humanoid', category: 'legged', label: 'Humanoid', blurb: '7-joint arms, 6-joint legs, waist and a pan/tilt head', data: HUMANOID },
   { id: 'robosimian', category: 'legged', label: 'RoboSimian', blurb: "JPL's four-limbed robot, seven joints per limb", data: ROBOSIMIAN },
+  { id: 'rover', category: 'wheeled', label: 'Rover', blurb: 'Two driven wheels, caster balls and a pan-tilt camera', data: ROVER },
+  { id: 'mobile-manipulator', category: 'wheeled', label: 'Mobile manipulator', blurb: 'A four-wheeled base carrying a 4-joint arm', data: MOBILE_MANIPULATOR },
   { id: 'humanoid-torso', category: 'arms', label: 'Humanoid torso', blurb: 'Two 7-joint arms, a waist and a pan/tilt head on a pedestal', data: HUMANOID_TORSO },
   { id: 'arm-7dof', category: 'arms', label: '7DOF Arm', blurb: 'A seven-joint manipulator', data: ARM_7DOF },
   { id: 'arm-6dof', category: 'arms', label: '6DOF Arm', blurb: 'The classic industrial arm with a three-axis wrist', data: ARM_6DOF },
