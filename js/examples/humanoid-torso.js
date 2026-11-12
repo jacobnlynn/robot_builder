@@ -9,23 +9,23 @@ const SIDES = [['left', 1], ['right', -1]];
 
 motor('waist', 'waist', at('pedestal'), ['harmonic_45_2', 'cycloidal_18'], v3(0, 0, 300), UP, BACK, 'torso');
 motor('neck_pan', 'neck_pan', at('torso', 2), ['planetary_5'], v3(0, 0, 660), UP, BACK, 'neck');
-motor('neck_tilt', 'neck_tilt', at('neck'), ['planetary_5'], v3(0, 40, 740), v3(0, 1, 0), UP, 'head');
+motor('neck_tilt', 'neck_tilt', at('neck'), ['planetary_5'], v3(0, 40, 790), v3(0, 1, 0), UP, 'head');
 for (const [side, s] of SIDES) {
   const id = (p) => `${side}_${p}`;
   const OUT = v3(0, s, 0);
   motor(id('shoulder_pitch'), id('shoulder_pitch'), at('torso', side === 'left' ? 0 : 1), ['cycloidal_18', 'cycloidal_18'], v3(0, 190 * s, 560), OUT, UP, id('shoulder'));
-  motor(id('shoulder_roll'), id('shoulder_roll'), at(id('shoulder')), ['cycloidal_18'], v3(70, 280 * s, 520), FWD, UP, id('shoulder_block'));
+  motor(id('shoulder_roll'), id('shoulder_roll'), at(id('shoulder')), ['cycloidal_18'], v3(70, 280 * s, 520), FWD, DOWN, id('shoulder_block'));
   motor(id('shoulder_yaw'), id('shoulder_yaw'), at(id('shoulder_block')), ['planetary_9'], v3(0, 300 * s, 360), DOWN, OUT, id('upper_arm'));
   motor(id('elbow'), id('elbow'), at(id('upper_arm')), ['planetary_9'], v3(0, 310 * s, 220), OUT, DOWN, id('elbow_block'));
   motor(id('wrist_yaw'), id('wrist_yaw'), at(id('elbow_block')), ['planetary_5'], v3(0, 310 * s, 60), DOWN, OUT, id('forearm'));
-  motor(id('wrist_pitch'), id('wrist_pitch'), at(id('forearm')), ['planetary_5'], v3(0, 320 * s, -40), OUT, DOWN, id('wrist'));
-  motor(id('wrist_roll'), id('wrist_roll'), at(id('wrist')), ['planetary_3'], v3(0, 320 * s, -190), DOWN, OUT, id('hand'));
+  motor(id('wrist_pitch'), id('wrist_pitch'), at(id('forearm')), ['planetary_5'], v3(0, 320 * s, -70), OUT, DOWN, id('wrist'));
+  motor(id('wrist_roll'), id('wrist_roll'), at(id('wrist')), ['planetary_3'], v3(0, 320 * s, -220), DOWN, OUT, id('hand'));
 }
 
 link('pedestal', 'pedestal', at('base'), ['waist']);
 link('torso', 'torso', at('waist'), ['left_shoulder_pitch', 'right_shoulder_pitch', 'neck_pan']);
 link('neck', 'neck', at('neck_pan'), ['neck_tilt']);
-link('head', 'head', at('neck_tilt'), [{ sphere: 70, at: v3(0, 0, 850) }]);
+link('head', 'head', at('neck_tilt'), [{ sphere: 70, at: v3(0, 0, 900) }]);
 for (const [side, s] of SIDES) {
   const id = (p) => `${side}_${p}`;
   link(id('shoulder'), id('shoulder'), at(id('shoulder_pitch')), [id('shoulder_roll')]);
@@ -34,7 +34,7 @@ for (const [side, s] of SIDES) {
   link(id('elbow_block'), id('elbow_block'), at(id('elbow')), [id('wrist_yaw')]);
   link(id('forearm'), id('forearm'), at(id('wrist_yaw')), [id('wrist_pitch')]);
   link(id('wrist'), id('wrist'), at(id('wrist_pitch')), [id('wrist_roll')]);
-  link(id('hand'), id('hand'), at(id('wrist_roll')), [{ sphere: 32, at: v3(0, 320 * s, -250) }]);
+  link(id('hand'), id('hand'), at(id('wrist_roll')), [{ sphere: 32, at: v3(0, 320 * s, -280) }]);
 }
 
 // Saved poses. Angles are given as for the left arm; the right arm is its mirror image, so every

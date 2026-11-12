@@ -5,6 +5,7 @@
 // Its card picture is img/examples/<id>.png (a robot with no picture gets a plain card).
 import { ROBOT_DOG } from './examples/robot-dog.js';
 import { HEXAPOD } from './examples/hexapod.js';
+import { HEXAPOD_4DOF } from './examples/hexapod-4dof.js';
 import { ARM_7DOF } from './examples/arm-7dof.js';
 import { HUMANOID } from './examples/humanoid.js';
 import { HUMANOID_TORSO } from './examples/humanoid-torso.js';
@@ -30,6 +31,7 @@ export const EXAMPLES = [
   { id: 'robot-dog', category: 'legged', label: 'Robot Dog', blurb: 'Four legs, three joints each', data: ROBOT_DOG },
   { id: 'doggo', category: 'legged', label: 'Doggo', blurb: 'Stanford Doggo style: four five-bar legs, two motors each', data: DOGGO },
   { id: 'hexapod', category: 'legged', label: 'Hexapod', blurb: 'Six legs on a hexagonal body', data: HEXAPOD },
+  { id: 'hexapod-4dof', category: 'legged', label: 'Hexapod (4DOF legs)', blurb: 'Six legs, each a hip yaw and three pitch joints in one plane', data: HEXAPOD_4DOF },
   { id: 'biped', category: 'legged', label: 'Biped', blurb: 'Two walking legs, six joints each', data: BIPED },
   { id: 'biped-linkage', category: 'legged', label: 'Biped (linkage ankles)', blurb: 'Ankle motors up the shin push the foot through two rods', data: BIPED_LINKAGE },
   { id: 'humanoid', category: 'legged', label: 'Humanoid', blurb: '7-joint arms, 6-joint legs, waist and a pan/tilt head', data: HUMANOID },
