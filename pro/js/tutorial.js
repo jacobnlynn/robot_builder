@@ -84,7 +84,7 @@ const STEPS = [
     target: '[data-view="cad"]',
     text: `<p>Build is the everyday view: actuators as colour-coded cylinders (one colour per gearbox type)
       and links as rods. Drag to orbit, right-drag to pan, scroll to zoom.</p>
-      <p>The cube in the corner turns with the view: click a face to look from that side. The buttons along the bottom fit the robot, snap to standard views and save a screenshot.</p>`,
+      <p>The buttons along the bottom fit the robot, snap to standard views and save a screenshot.</p>`,
     setup: view('cad'),
   },
   {
@@ -112,7 +112,7 @@ const STEPS = [
     target: '[data-view="anim"]',
     text: `<p>Animate plays a series of saved poses. In the side panel, add poses as steps, drag them into order,
       set how long each one holds, then Play, with Loop on or off. Every example comes with a few animations to try.</p>
-      <p>The timeline under the view draws every moving joint's angle over time, with a diamond at each pose: drag across it to scrub. Legged robots also get a Walk button: it plays the robot's walking gait.</p>`,
+      <p>In this view the timeline under the 3D view draws every moving joint's angle over time, with a diamond at each pose: drag across it to scrub. Legged robots also get a Walk button: it plays the robot's walking gait.</p>`,
     setup: view('anim'),
   },
   {

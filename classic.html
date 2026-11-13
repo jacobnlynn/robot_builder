@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reconfigurable Robot Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=Karla:wght@400;600;700&family=Rubik+Mono+One&family=Space+Mono:wght@400;700&family=Pixelify+Sans:wght@400;500;700&family=Silkscreen&family=VT323&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/theme-retro.css" id="theme-css"> <!-- theme stylesheet: Retro by default; the Tutorial &amp; theme menu (js/styles.js) swaps it -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<!-- File bar: attached to the top of the page, apart from the builder below -->
+<header class="topbar filebar">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="13" width="9" height="9" rx="2" style="fill: var(--ink)"></rect>
+      <path d="M7 15 L17 6" style="stroke: var(--accent); stroke-width: 3; stroke-linecap: round; fill: none"></path>
+      <circle cx="18" cy="5.5" r="3.2" style="fill: var(--panel); stroke: var(--ink); stroke-width: 2"></circle>
+    </svg>
+    <span class="brand-name">Reconfigurable Robot Builder</span>
+    <span class="brand-sep" aria-hidden="true">/</span>
+    <input id="project-name" class="project-name" type="text" aria-label="Project name" autocomplete="off">
+  </div>
+  <!-- Robot data window, the Examples start screen, New (a blank robot), then two menus: Import/Export (open, save, export) and ? (tutorial, style). js/menus.js opens and closes the menus. -->
+  <div class="top-actions">
+    <button type="button" class="btn" id="btn-data" title="Jacobians, transforms and joint data for the whole robot">Robot data</button>
+    <button type="button" class="btn" id="btn-examples" title="Open the examples: legged robots, arms and simple mechanisms">Examples</button>
+    <button type="button" class="btn" id="btn-new" title="Start a blank robot: just the base">New</button>
+    <div class="style-menu menu">
+      <button type="button" class="btn" id="btn-menu-file" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-file">Import/Export</button>
+      <div class="style-list menu-list" id="menu-file" role="menu" aria-label="Import/Export" hidden>
+        <button type="button" class="style-option" role="menuitem" id="btn-import"><span class="style-name">Open JSON&hellip;</span><span class="style-note">Load a project from a .json file</span></button>
+        <button type="button" class="style-option" role="menuitem" id="btn-file"><span class="style-name">Save JSON&hellip;</span><span class="style-note">Copy or download this robot as JSON</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <button type="button" class="style-option" role="menuitem" id="btn-export-step"><span class="style-name">Export STEP&hellip;</span><span class="style-note">The whole robot as one CAD assembly</span></button>
+        <button type="button" class="style-option" role="menuitem" id="btn-export-urdf"><span class="style-name">Export URDF&hellip;</span><span class="style-note">robot.urdf + meshes, for simulators</span></button>
+      </div>
+    </div>
+    <input type="file" id="import-input" accept=".json,application/json" hidden>
+    <div class="style-menu menu">
+      <button type="button" class="btn" id="btn-menu-help" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-help" title="The guided tour, and the site's look">Tutorial &amp; theme</button>
+      <div class="style-list menu-list" id="menu-help" role="menu" aria-label="Tutorial and theme" hidden>
+        <button type="button" class="style-option" role="menuitem" id="btn-tour"><span class="style-name">Tutorial</span><span class="style-note">Take the guided tour of the site</span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div class="menu-label">Theme</div>
+        <div id="style-list" role="group" aria-label="Style"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <main class="workspace">
+    <aside class="panel panel-left" aria-label="Assembly">
+      <section class="panel-section">
+        <div class="section-head">
+          <h2 class="section-title">Assembly</h2>
+          <div class="section-tools">
+            <button type="button" class="btn btn-ghost btn-small" id="btn-collapse-all" title="Fold every limb to one line">Collapse all</button>
+            <button type="button" class="btn btn-ghost btn-small" id="btn-tree-view" aria-pressed="false" title="Open the assembly as a tree diagram">Tree view</button>
+          </div>
+        </div>
+        <input type="search" id="tree-search" class="tree-search" placeholder="Find a part&hellip;" aria-label="Find a part" autocomplete="off">
+        <div id="poses" class="poses"></div>
+        <div id="tree"></div>
+      </section>
+    </aside>
+
+    <div class="viewport" id="viewport">
+      <!-- Display mode, in the corner of the 3D view, and Walk (legged robots only: plays the walk in Animate; js/animate.js) -->
+      <div class="vp-bar">
+      <div class="segmented vp-views" role="group" aria-label="Display mode">
+        <button type="button" data-view="sim" aria-pressed="false">Simulate</button>
+        <button type="button" data-view="anim" aria-pressed="false">Animate</button>
+        <button type="button" data-view="cad" aria-pressed="true">Build</button>
+        <button type="button" data-view="cadfile" aria-pressed="false">CAD</button>
+        <button type="button" data-view="simple" aria-pressed="false">Simplified</button>
+      </div>
+      <button type="button" class="btn vp-walk" id="btn-walk" aria-pressed="false" title="Play this robot's walk" hidden>&#9654; Walk</button>
+      </div>
+      <div class="vp-tools" id="tube-toggle" hidden></div>
+      <div class="vp-hint" id="vp-hint">Drag to orbit &middot; Right-drag to pan &middot; Scroll to zoom<br>Click a blue dot to attach a part</div>
+      <div class="vp-legend" id="legend"></div>
+    </div>
+
+    <aside class="panel panel-right" id="inspector" aria-label="Inspector"></aside>
+  </main>
+
+  <footer class="statusbar" id="status"></footer>
+</div>
+
+<dialog id="file-dialog" class="dialog" aria-labelledby="file-title">
+  <div class="dialog-head">
+    <h2 id="file-title">Export JSON</h2>
+    <button type="button" class="icon-btn" id="file-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body">
+    <p class="muted">The whole robot as JSON: every part, its D-H parameters, gearbox stack and joint angle.
+      Copy or download it to save. To load a project, paste it here or open a file.</p>
+    <textarea id="file-text" spellcheck="false" aria-label="Project JSON"></textarea>
+    <p class="error" id="file-error" role="alert"></p>
+  </div>
+  <div class="dialog-foot">
+    <label class="btn">Open file&hellip;<input type="file" id="file-input" accept=".json,application/json" hidden></label>
+    <span class="spacer"></span>
+    <button type="button" class="btn" id="file-copy">Copy</button>
+    <button type="button" class="btn" id="file-download">Download .json</button>
+    <button type="button" class="btn btn-primary" id="file-load">Load from text</button>
+    <button type="button" class="btn" id="file-cancel">Close</button>
+  </div>
+</dialog>
+
+<dialog id="tree-dialog" class="dialog tree-dialog" aria-labelledby="tree-title">
+  <div class="dialog-head">
+    <h2 id="tree-title">Assembly tree</h2>
+    <button type="button" class="icon-btn" id="tree-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body"><div id="tree-diagram"></div></div>
+</dialog>
+<dialog id="export-dialog" class="dialog export-dialog" aria-labelledby="export-title">
+  <div class="dialog-head"><h2 id="export-title">Export STEP</h2>
+    <button type="button" class="icon-btn" id="export-close" aria-label="Close">&times;</button></div>
+  <div class="dialog-body">
+    <p id="export-step">Getting ready&hellip;</p>
+    <progress id="export-progress" max="1" value="0"></progress>
+    <p class="muted" id="export-detail"></p>
+    <p class="export-note"><strong>Note:</strong> the full model may still have small mechanical bugs. The actuator design is still being refined.</p>
+  </div>
+  <div class="dialog-foot">
+    <button type="button" class="btn" id="export-again" hidden>Download again</button>
+    <button type="button" class="btn btn-primary" id="export-done">Close</button>
+  </div>
+</dialog>
+<dialog id="data-dialog" class="dialog data-dialog" aria-labelledby="data-title">
+  <div class="dialog-head">
+    <h2 id="data-title">Robot data</h2>
+    <button type="button" class="icon-btn" id="data-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body" id="data-body"></div>
+</dialog>
+<!-- Start screen: pick an example, by category. Opens after the tutorial on page load and from the Examples button. Cards come from js/examples.js. -->
+<dialog id="start-dialog" class="dialog start-dialog" aria-labelledby="start-title">
+  <div class="dialog-head">
+    <h2 id="start-title">Examples</h2>
+    <button type="button" class="icon-btn" id="start-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body">
+    <div class="start-grid" id="start-grid"></div>
+    <p class="muted" id="start-note"></p>
+  </div>
+</dialog>
+</body>
+</html>

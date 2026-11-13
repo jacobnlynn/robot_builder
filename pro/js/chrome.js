@@ -1,6 +1,5 @@
 // The pro workspace around the builder: the commands behind the menu bar, the ribbon and the keyboard;
-// the left dock's tabs and its Loops list; and, over the 3D view, a view cube and axes that turn with
-// the camera, a label on the selected part, tags for what's shown, a ground grid and screenshots.
+// the left dock's tabs and its Loops list; and, over the 3D view, axes that turn with the camera, a label on the selected part, tags for what's shown, a ground grid and screenshots.
 // Everything here drives the same store and UI as the classic layout; nothing is a separate copy of it.
 import * as THREE from 'three';
 import * as store from './robot.js';
@@ -20,6 +19,7 @@ const CAMERA = {
   iso: [0.62, -0.68, 0.42], top: [0, -0.02, 1], bottom: [0, 0.02, -1],
   front: [0, -1, 0], back: [0, 1, 0], right: [1, 0, 0], left: [-1, 0, 0],
 };
+// The six straight-on views (View menu and number keys): which way the camera looks from, and its up.
 const CUBE_FACES = [
   { key: 'top', label: 'Top', n: [0, 0, 1], up: [0, 1, 0] },
   { key: 'bottom', label: 'Bottom', n: [0, 0, -1], up: [0, -1, 0] },
@@ -67,47 +67,17 @@ export function initChrome(viewer, { animator, history }) {
       viewer.camera.position.copy(snap.target).addScaledVector(dir.normalize(), snap.dist);
       if (u >= 1) snap = null;
     }
-    drawCube();
     drawTriad();
     placeCallout();
   });
-
-  // ---------------------------------------------------------------- View cube (CSS faces turned with the camera)
-
-  const cube = $('#view-cube');
-  const HALF = 27; // px: half the face size
-  const S = new THREE.Matrix4().makeScale(1, -1, 1); // CSS y points down
-  const faces = CUBE_FACES.map((f) => {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'cube-face';
-    el.textContent = f.label;
-    el.setAttribute('aria-label', `${f.label} view`);
-    el.addEventListener('click', () => snapTo(f.key));
-    cube.append(el);
-    const n = new THREE.Vector3(...f.n);
-    // The face's own frame: as if a camera looked straight at it, so its label reads upright then.
-    const look = new THREE.Matrix4().lookAt(n, new THREE.Vector3(), new THREE.Vector3(...f.up));
-    const place = new THREE.Matrix4().makeTranslation(n.x * HALF, n.y * HALF, n.z * HALF).multiply(look).multiply(S);
-    return { el, n, place };
-  });
-  const view = new THREE.Matrix4(), m = new THREE.Matrix4(), v = new THREE.Vector3();
-  function drawCube() {
-    view.makeRotationFromQuaternion(viewer.camera.quaternion).transpose();
-    for (const f of faces) {
-      v.copy(f.n).applyMatrix4(view);
-      f.el.style.visibility = v.z > 0.02 ? 'visible' : 'hidden';
-      f.el.style.zIndex = String(Math.round(v.z * 100) + 100);
-      m.copy(S).multiply(view).multiply(f.place);
-      f.el.style.transform = `matrix3d(${m.elements.map((x) => x.toFixed(5)).join(',')})`;
-    }
-  }
 
   // ---------------------------------------------------------------- Axes triad (bottom left)
 
   const triad = $('#triad');
   const AXES = [['x', [1, 0, 0]], ['y', [0, 1, 0]], ['z', [0, 0, 1]]];
+  const view = new THREE.Matrix4(), v = new THREE.Vector3();
   function drawTriad() {
+    view.makeRotationFromQuaternion(viewer.camera.quaternion).transpose();
     const parts = AXES.map(([name, a]) => {
       v.set(...a).applyMatrix4(view);
       return { name, x: v.x * 20, y: -v.y * 20, z: v.z };
@@ -276,7 +246,8 @@ export function initChrome(viewer, { animator, history }) {
     applyPrefs();
   };
   function applyPrefs() {
-    document.body.classList.toggle('no-timeline', !prefs.timeline);
+    // The timeline only shows in the Animate view (and when it is switched on).
+    document.body.classList.toggle('no-timeline', !prefs.timeline || state.view !== 'anim');
     placeGround();
     renderCallout();
     renderToggles();
@@ -382,6 +353,7 @@ export function initChrome(viewer, { animator, history }) {
   store.subscribe((kind) => {
     solve();
     if (kind === 'structure') { groundZ = groundHeight(); placeGround(); }
+    if (kind === 'view') document.body.classList.toggle('no-timeline', !prefs.timeline || state.view !== 'anim');
     renderCallout();
     renderTags();
     renderLoops();
@@ -397,6 +369,5 @@ export function initChrome(viewer, { animator, history }) {
   applyPrefs();
   renderTags();
   renderLoops();
-  drawCube();
   return { showTab };
 }

@@ -1,12 +1,12 @@
 # Robot Builder Pro
 
-The same builder in a desktop-workstation layout: a menu bar, a ribbon of tools, three docks (assembly, 3D view with a timeline, properties) and a status bar, in a dark or light theme. Everything the classic site does works here too; the classic site in the folder above is untouched.
+The builder's main layout, a desktop workstation: a menu bar, a ribbon of tools, three docks (assembly, 3D view, properties; the timeline shows under the 3D view in Animate) and a status bar, in any of the themes (View > Theme: Retro by default, Normal, Dark, Risograph, Pixel, CGA). The page is `index.html` at the site root; the classic layout is `classic.html`, and Help > Open the classic layout (or Pro layout in the classic theme menu) switches between them, taking the robot along. `pro/index.html` only forwards to `index.html`.
 
-Run the site as usual (`python -m http.server 8000` in the folder above) and open http://localhost:8000/pro/.
+Run the site as usual (`python -m http.server 8000` in the folder above) and open http://localhost:8000/ (or http://localhost:8000/classic.html for the classic layout).
 
 ## How it is put together
 
-`pro/index.html` sets `<base href="../">`, so every relative path resolves from the site root: the pro version uses the root's `img/examples/`, `models/` and `vendor/` instead of copies. Its code is a copy of `js/` in `pro/js/`, so the two versions can change separately. The page keeps the element ids the shared code looks for (`#tree`, `#inspector`, `#status`, `#btn-new` and so on); only where they sit has changed.
+`index.html` lives at the site root, so the pro version uses the root's `img/examples/`, `models/` and `vendor/` instead of copies. Its code is a copy of `js/` in `pro/js/`, so the two versions can change separately. The page keeps the element ids the shared code looks for (`#tree`, `#inspector`, `#status`, `#btn-new` and so on); only where they sit has changed.
 
 What differs from `js/`:
 

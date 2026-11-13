@@ -1,0 +1,19 @@
+/* Pro, Retro (Windows 95). Colours, fonts and a few touches; pro.css holds the layout. */
+:root {
+  color-scheme: light;
+  --bg: #008080; --chrome: #c0c0c0; --ribbon: #c0c0c0; --panel: #c0c0c0; --panel-head: #c0c0c0; --panel-sunk: #dcdcdc;
+  --row-hover: #000080; --viewport: #ffffff; --line: #808080; --line-strong: #404040;
+  --ink: #000000; --ink-2: #000000; --muted: #404040; --accent: #000080; --accent-ink: #000080; --accent-soft: #dcdcdc;
+  --sel: #000080; --sel-ink: #000080; --sel-soft: #dcdcdc; --danger: #800000; --danger-soft: #c0c0c0; --danger-line: #800000;
+  --overlay: #c0c0c0; --shadow-float: 2px 2px 0 #000; --shadow-raised: none;
+  --ax-x: #c00000; --ax-y: #008000; --ax-z: #0000c0;
+  --tl-0: #000080; --tl-1: #800000; --tl-2: #008080; --tl-3: #800080; --tl-4: #808000; --tl-5: #404040;
+  --font-ui: "Times New Roman", Times, serif; --font-mono: "Courier New", Courier, monospace;
+  --radius: 0; --radius-sm: 0;
+}
+.menubar { background: #000080; }
+.menubar .mb-btn, .menubar .brand-name { color: #ffffff; }
+.mb-btn:hover, .mb-btn[aria-expanded="true"] { background: #c0c0c0; color: #000; }
+.ribbon button, .btn, .dock-tab { border: 2px solid; border-color: #ffffff #404040 #404040 #ffffff; background: #c0c0c0; }
+.dock-tab[aria-selected="true"] { box-shadow: none; background: #dcdcdc; border-color: #404040 #ffffff #ffffff #404040; }
+input, select, textarea { border: 2px solid; border-color: #404040 #ffffff #ffffff #404040; background: #fff; border-radius: 0; }

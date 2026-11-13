@@ -1,0 +1,20 @@
+/* Pro, CGA (black, cyan, magenta, white). Colours, fonts and a few touches; pro.css holds the layout. */
+@import url("https://fonts.googleapis.com/css2?family=Silkscreen&family=VT323&display=swap");
+:root {
+  color-scheme: dark;
+  --bg: #000000; --chrome: #000000; --ribbon: #000000; --panel: #000000; --panel-head: #000000; --panel-sunk: #000000;
+  --row-hover: #003c3c; --viewport: #000000; --line: #55ffff; --line-strong: #55ffff;
+  --ink: #55ffff; --ink-2: #55ffff; --muted: #ffffff; --accent: #ff55ff; --accent-ink: #ff55ff; --accent-soft: #000000;
+  --sel: #ff55ff; --sel-ink: #ff55ff; --sel-soft: #2a002a; --danger: #ff55ff; --danger-soft: #000000; --danger-line: #ff55ff;
+  --overlay: #000000; --shadow-float: none; --shadow-raised: none;
+  --ax-x: #ff55ff; --ax-y: #55ffff; --ax-z: #ffffff;
+  --tl-0: #ff55ff; --tl-1: #55ffff; --tl-2: #ffffff; --tl-3: #ff55ff; --tl-4: #55ffff; --tl-5: #ffffff;
+  --font-ui: "VT323", ui-monospace, Consolas, monospace; --font-mono: "VT323", ui-monospace, Consolas, monospace;
+  --radius: 0; --radius-sm: 0;
+}
+body { font-size: 16px; }
+.brand-name, .mb-btn, .dock-tab { font-family: "Silkscreen", monospace; font-size: 12px; }
+.brand-name { color: #ffffff; }
+.menubar, .ribbon { border-bottom: 4px double #55ffff; }
+.dock-tab[aria-selected="true"] { box-shadow: inset 0 -3px 0 #ff55ff; color: #ffffff; }
+.ribbon button[aria-pressed="true"] { outline: 2px solid #ff55ff; }

@@ -29,7 +29,9 @@ let switched = false;
 if (handed) try { store.load(handed); switched = true; } catch { /* not a robot after all: start fresh */ }
 if (!switched) store.load(EXAMPLES[0].data);
 viewer.fit();
-// Themes in the Tutorial & theme menu: Retro (default), Normal (opens the pro layout), Risograph, Pixel, CGA. After the first robot loads, so it can redraw.
+// You're in the classic layout: index.html sends you back here next time, until you pick Pro layout.
+try { localStorage.setItem('mrb.layout', 'classic'); } catch { /* storage blocked */ }
+// Themes in the Tutorial & theme menu: Retro (default), Risograph, Pixel, CGA, and Pro layout (switches to index.html). After the first robot loads, so it can redraw.
 initStyles(viewer);
 // Guided tour: opens every time the site opens, and from ? > Tutorial. When it closes the first
 // time, the start screen offers the examples.

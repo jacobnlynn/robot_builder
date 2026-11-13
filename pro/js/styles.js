@@ -1,10 +1,20 @@
 // Theme choices (View > Theme): switch the whole site between visual themes. A theme is a stylesheet loaded after
 // style.css (it only overrides it) plus, optionally, colours for the 3D view. Retro is the default;
-// the choice is remembered in this browser.
+// the choice is remembered in this browser. (Normal was called Light before; a saved 'light' still works.)
 import * as store from './robot.js';
 import { FAMILY_COLORS, OUTPUT_FLANGE } from './constants.js';
 
 export const THEMES = {
+  // The classic site's themes, in the pro layout. Their 3D view keeps the site's own colours, as in
+  // the classic layout.
+  retro: { label: 'Retro', css: 'pro/css/theme-retro.css' },
+  normal: {
+    label: 'Normal',
+    css: 'pro/css/theme-light.css',
+    colors: {
+      scene: { background: 0xe9ecf0, select: 0xd9861a, seam: 0x353d47, simpleLine: 0x28313b, simpleJoint: 0x2f6fe4, grid: 0x000000 },
+    },
+  },
   dark: {
     label: 'Dark',
     css: 'pro/css/theme-dark.css',
@@ -13,16 +23,12 @@ export const THEMES = {
       scene: { background: 0x2b2f36, select: 0xe39b3a, seam: 0x16191d, simpleLine: 0xc9ced6, simpleJoint: 0x8fb4e6, grid: 0xffffff },
     },
   },
-  light: {
-    label: 'Light',
-    css: 'pro/css/theme-light.css',
-    colors: {
-      scene: { background: 0xe9ecf0, select: 0xd9861a, seam: 0x353d47, simpleLine: 0x28313b, simpleJoint: 0x2f6fe4, grid: 0x000000 },
-    },
-  },
+  risograph: { label: 'Risograph', css: 'pro/css/theme-risograph.css' },
+  pixel: { label: 'Pixel', css: 'pro/css/theme-pixel.css' },
+  cga: { label: 'CGA', css: 'pro/css/theme-cga.css' },
 };
-export const DEFAULT_THEME = 'dark';
-const KEY = 'rbpro.theme';
+export const DEFAULT_THEME = 'retro';
+const KEY = 'mrb.pro-theme'; // (a new key, so everyone starts on the new default, Retro)
 
 // The site's own 3D colours, restored before a theme applies its own.
 const DEFAULTS = { family: { ...FAMILY_COLORS }, flange: OUTPUT_FLANGE.color };
@@ -60,5 +66,6 @@ export function initStyles(viewer) {
 
   let saved = null;
   try { saved = localStorage.getItem(KEY); } catch { /* storage blocked: use the default */ }
+  if (saved === 'light') saved = 'normal';
   applyTheme(saved && THEMES[saved] ? saved : DEFAULT_THEME, viewer);
 }

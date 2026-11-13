@@ -12,7 +12,7 @@ python -m http.server 8000
 
 Then open http://localhost:8000. Three.js loads from the jsDelivr CDN, so you need an internet connection.
 
-A second layout, Robot Builder Pro, is at http://localhost:8000/pro/: the same builder as a desktop workstation (menu bar, ribbon, docks, timeline, undo and redo, a view cube, dark and light themes). See [pro/README.md](pro/README.md).
+That opens the main, pro layout: a desktop workstation (menu bar, ribbon, docks, undo and redo, a timeline in Animate) in the Retro theme by default, with Normal, Dark, Risograph, Pixel and CGA under View > Theme. The original layout is at http://localhost:8000/classic.html; Help > Open the classic layout and Pro layout in the classic theme menu switch between them, and the site opens whichever you used last. See [pro/README.md](pro/README.md).
 
 ## Files
 

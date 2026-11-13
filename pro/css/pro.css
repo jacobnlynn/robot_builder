@@ -109,17 +109,6 @@ input[type="range"] { accent-color: var(--sel); }
 .vp-legend { left: auto; right: 10px; bottom: 10px; max-width: calc(100% - 340px); padding: 3px 8px; font-size: 11px; }
 .vp-legend .swatch { width: 8px; height: 8px; }
 
-/* View cube: six faces turned with the camera (pro/js/chrome.js sets each face's matrix3d) */
-.vp-cube { position: absolute; top: 14px; right: 18px; z-index: 2; width: 86px; height: 86px; }
-.cube-face {
-  position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; padding: 0;
-  display: grid; place-items: center;
-  background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line-strong);
-  color: var(--ink-2); font: 600 9.5px var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
-  cursor: pointer; backface-visibility: hidden;
-}
-.cube-face:hover { background: var(--sel-soft); color: var(--sel-ink); border-color: var(--sel); }
-
 .vp-triad { position: absolute; left: 10px; bottom: 44px; z-index: 2; overflow: visible; pointer-events: none; }
 .vp-triad line { stroke-width: 2; stroke-linecap: round; }
 .vp-triad .tr-x { stroke: var(--ax-x); } .vp-triad .tr-y { stroke: var(--ax-y); } .vp-triad .tr-z { stroke: var(--ax-z); }

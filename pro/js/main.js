@@ -42,5 +42,7 @@ initStyles(viewer);
 // time, the start screen offers the examples.
 let first = true;
 initTutorial(viewer, { autoOpen: !switched, onClose: () => { if (first) { first = false; start.open(); } } });
-// Help > Open the classic layout takes the robot with it.
-document.querySelector('#menu-help a[href="index.html"]')?.addEventListener('click', () => store.handOff());
+// You're in the pro layout: open this one next time. Help > Open the classic layout takes the robot
+// with it (and the classic page remembers that you chose it).
+try { localStorage.setItem('mrb.layout', 'pro'); } catch { /* storage blocked */ }
+document.querySelector('#menu-help a[href="classic.html"]')?.addEventListener('click', () => store.handOff());

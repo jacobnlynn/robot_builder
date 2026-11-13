@@ -1,0 +1,20 @@
+/* Pro, Pixel (bright 8-bit). Colours, fonts and a few touches; pro.css holds the layout. */
+@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;700&family=Silkscreen&family=VT323&display=swap");
+:root {
+  color-scheme: light;
+  --bg: #3b4a8c; --chrome: #1d2b53; --ribbon: #fff4e0; --panel: #fff4e0; --panel-head: #f1e3c4; --panel-sunk: #f1e3c4;
+  --row-hover: #f6e3a3; --viewport: #1d2b53; --line: #d9c9a6; --line-strong: #1d2b53;
+  --ink: #1d2b53; --ink-2: #33395a; --muted: #5b5872; --accent: #29adff; --accent-ink: #7e5aa6; --accent-soft: #f6e3a3;
+  --sel: #f08a3c; --sel-ink: #c96a25; --sel-soft: #f6e3a3; --danger: #b8283c; --danger-soft: #ffdbe0; --danger-line: #1d2b53;
+  --overlay: #fff4e0; --shadow-float: 4px 4px 0 #1d2b53; --shadow-raised: none;
+  --ax-x: #e0475b; --ax-y: #4fbf4a; --ax-z: #29adff;
+  --tl-0: #f08a3c; --tl-1: #29adff; --tl-2: #4fbf4a; --tl-3: #e0475b; --tl-4: #e8c547; --tl-5: #7e5aa6;
+  --font-ui: "Pixelify Sans", system-ui, sans-serif; --font-mono: "VT323", ui-monospace, monospace;
+  --radius: 0; --radius-sm: 0;
+}
+.menubar .mb-btn, .menubar .brand-name { color: #fff4e0; font-family: "Silkscreen", monospace; font-size: 12px; }
+.mb-btn:hover, .mb-btn[aria-expanded="true"] { background: #e8c547; color: #1d2b53; }
+.ribbon button { border: 2px solid #1d2b53; background: #fff4e0; }
+.ribbon button[aria-pressed="true"] { background: #e8c547; }
+.dock-tab { font-family: "Silkscreen", monospace; font-size: 11px; }
+.dock-tab[aria-selected="true"] { background: #29adff; color: #1d2b53; box-shadow: none; }
