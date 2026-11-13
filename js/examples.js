@@ -19,29 +19,36 @@ import { SCARA_5BAR } from './examples/scara-5bar.js';
 import { BIPED_LINKAGE } from './examples/biped-linkage.js';
 import { PAN_TILT } from './examples/pan-tilt.js';
 import { PARALLELOGRAM } from './examples/parallelogram.js';
+import { SWERVE } from './examples/swerve.js';
+import { ROCKER_BOGIE } from './examples/rocker-bogie.js';
+import { WHEEL_DOG } from './examples/wheel-dog.js';
 
 /** Start screen sections: [key, heading]. */
 export const CATEGORIES = [
   ['legged', 'Legged robots'],
   ['arms', 'Arms'],
+  ['wheeled', 'Wheeled robots'],
   ['mechanisms', 'Simple mechanisms'],
 ];
 
 export const EXAMPLES = [
-  { id: 'robot-dog', category: 'legged', label: 'Robot Dog', blurb: 'Four legs, three joints each', data: ROBOT_DOG },
-  { id: 'doggo', category: 'legged', label: 'Doggo', blurb: 'Stanford Doggo style: four five-bar legs, two motors each', data: DOGGO },
-  { id: 'hexapod', category: 'legged', label: 'Hexapod', blurb: 'Six legs on a hexagonal body', data: HEXAPOD },
-  { id: 'hexapod-4dof', category: 'legged', label: 'Hexapod (4DOF legs)', blurb: 'Six legs, each a hip yaw and three pitch joints in one plane', data: HEXAPOD_4DOF },
-  { id: 'biped', category: 'legged', label: 'Biped', blurb: 'Two walking legs, six joints each', data: BIPED },
-  { id: 'biped-linkage', category: 'legged', label: 'Biped (linkage ankles)', blurb: 'Ankle motors up the shin push the foot through two rods', data: BIPED_LINKAGE },
-  { id: 'humanoid', category: 'legged', label: 'Humanoid', blurb: '7-joint arms, 6-joint legs, waist and a pan/tilt head', data: HUMANOID },
-  { id: 'robosimian', category: 'legged', label: 'RoboSimian', blurb: "JPL's four-limbed robot, seven joints per limb", data: ROBOSIMIAN },
-  { id: 'humanoid-torso', category: 'arms', label: 'Humanoid torso', blurb: 'Two 7-joint arms, a waist and a pan/tilt head on a pedestal', data: HUMANOID_TORSO },
-  { id: 'arm-7dof', category: 'arms', label: '7DOF Arm', blurb: 'A seven-joint manipulator', data: ARM_7DOF },
-  { id: 'arm-6dof', category: 'arms', label: '6DOF Arm', blurb: 'The classic industrial arm with a three-axis wrist', data: ARM_6DOF },
-  { id: 'pan-tilt', category: 'mechanisms', label: 'Pan-tilt', blurb: 'Two motors at right angles aim a camera', data: PAN_TILT },
-  { id: 'fourbar', category: 'mechanisms', label: 'Four-bar', blurb: 'A crank-rocker linkage: one motor, a closed loop of hinges', data: FOURBAR },
-  { id: 'scara', category: 'mechanisms', label: 'SCARA', blurb: 'Three vertical axes: a flat pick-and-place arm', data: SCARA },
-  { id: 'scara-5bar', category: 'mechanisms', label: 'SCARA (5-bar)', blurb: 'A parallel SCARA: two motors on the column, one closed loop', data: SCARA_5BAR },
-  { id: 'parallelogram', category: 'mechanisms', label: 'Parallelogram', blurb: 'Equal opposite bars keep the platform level as it swings', data: PARALLELOGRAM },
+  { id: 'robot-dog', category: 'legged', label: 'Robot Dog', blurb: 'Four legs with three motors each', data: ROBOT_DOG },
+  { id: 'doggo', category: 'legged', label: 'Doggo', blurb: 'Four five-bar legs, based on Stanford Doggo', data: DOGGO },
+  { id: 'hexapod', category: 'legged', label: 'Hexapod', blurb: 'Six legs with three motors each', data: HEXAPOD },
+  { id: 'hexapod-4dof', category: 'legged', label: 'Hexapod (4DOF legs)', blurb: 'Six legs with four motors each', data: HEXAPOD_4DOF },
+  { id: 'biped', category: 'legged', label: 'Biped', blurb: 'Two legs with six motors each', data: BIPED },
+  { id: 'biped-linkage', category: 'legged', label: 'Biped (linkage ankles)', blurb: 'Biped with the ankle motors on the shins, driving the feet through rods', data: BIPED_LINKAGE },
+  { id: 'humanoid', category: 'legged', label: 'Humanoid', blurb: 'Arms, legs, a waist and a head that pans and tilts', data: HUMANOID },
+  { id: 'robosimian', category: 'legged', label: 'RoboSimian', blurb: "Four limbs with seven motors each, based on JPL's RoboSimian", data: ROBOSIMIAN },
+  { id: 'humanoid-torso', category: 'arms', label: 'Humanoid torso', blurb: 'Two arms, a waist and a head on a fixed stand', data: HUMANOID_TORSO },
+  { id: 'arm-7dof', category: 'arms', label: '7DOF Arm', blurb: 'Arm with seven motors', data: ARM_7DOF },
+  { id: 'arm-6dof', category: 'arms', label: '6DOF Arm', blurb: 'Industrial-style arm with a three-motor wrist', data: ARM_6DOF },
+  { id: 'swerve', category: 'wheeled', label: 'Swerve drive', blurb: 'FRC-style base where every wheel steers and drives', data: SWERVE },
+  { id: 'rocker-bogie', category: 'wheeled', label: 'Six-wheeled rover', blurb: 'Six wheels on a rocker-bogie suspension', data: ROCKER_BOGIE },
+  { id: 'wheel-dog', category: 'wheeled', label: 'Wheeled robot dog', blurb: 'Robot dog with a driven wheel on each leg', data: WHEEL_DOG },
+  { id: 'pan-tilt', category: 'mechanisms', label: 'Pan-tilt', blurb: 'Two motors that point a camera', data: PAN_TILT },
+  { id: 'fourbar', category: 'mechanisms', label: 'Four-bar', blurb: 'One motor driving a four-bar linkage', data: FOURBAR },
+  { id: 'scara', category: 'mechanisms', label: 'SCARA', blurb: 'Flat pick-and-place arm', data: SCARA },
+  { id: 'scara-5bar', category: 'mechanisms', label: 'SCARA (5-bar)', blurb: 'SCARA arm driven by two motors through a five-bar linkage', data: SCARA_5BAR },
+  { id: 'parallelogram', category: 'mechanisms', label: 'Parallelogram', blurb: 'Linkage that keeps the top bar level as it swings', data: PARALLELOGRAM },
 ];

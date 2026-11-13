@@ -15,8 +15,8 @@
 // models/<family>_gearbox.step and _extension.step), each link part is measured from its own solid, and a body's
 // values combine everything it carries.
 import * as THREE from 'three';
-import { state, node, isPassive } from './robot.js';
-import { FAMILY_COLORS, JOINT_LIMIT } from './constants.js';
+import { state, node, isPassive, isWheel } from './robot.js';
+import { FAMILY_COLORS, JOINT_LIMIT, WHEEL } from './constants.js';
 import { forwardKinematics, stackRatio } from './kinematics.js';
 import { hooks, cadGeometry, actuatorCadKeys, whenCadReady } from './viewer.js';
 import { jointSpeed } from './simulate.js';
@@ -279,6 +279,15 @@ export async function exportURDF(onProgress = () => {}) {
       visuals.get(body).push({ mesh: addMesh(key, tri), matrix: toBody.clone().multiply(f.input), color: FAMILY_COLORS.link ?? 0x8a97a8, label: `${n.name}` });
       masses.get(body).push(moved(meshProps(tri), toBody.clone().multiply(f.input)));
     }
+    // Wheels: real cylinders (simulators roll them far better than a mesh), a black tyre that
+    // collides and a grey hub that only shows, with the whole disc's mass.
+    if (n.type === 'link') n.outputs.forEach((o, i) => {
+      if (!isWheel(n, i)) return;
+      const m = toBody.clone().multiply(f.outputs[i]), { radius: r, width: w } = o.wheel;
+      visuals.get(body).push({ cylinder: [r, w], matrix: m, color: WHEEL.tyreColor, label: `${n.name} wheel` },
+        { cylinder: [r - Math.min(WHEEL.tyre, r * 0.4) + 0.5, w * 0.8], matrix: m, color: WHEEL.hubColor, label: `${n.name} wheel hub`, visualOnly: true });
+      masses.get(body).push(moved(meshProps(triOf(new THREE.CylinderGeometry(r, r, w, 48).rotateX(Math.PI / 2))), m));
+    });
     await tick(`Adding ${n.name}`);
   }
 
@@ -298,10 +307,12 @@ export async function exportURDF(onProgress = () => {}) {
     const mass = combine(masses.get(body));
     if (mass) lines.push(`    ${inertial(mass)}`);
     for (const v of list) {
-      const geom = `<geometry><mesh filename="${v.mesh}" scale="0.001 0.001 0.001"/></geometry>`;
+      const geom = v.cylinder
+        ? `<geometry><cylinder radius="${fmt(v.cylinder[0] / 1000)}" length="${fmt(v.cylinder[1] / 1000)}"/></geometry>`
+        : `<geometry><mesh filename="${v.mesh}" scale="0.001 0.001 0.001"/></geometry>`;
       lines.push(`    <!-- ${esc(v.label)} -->`,
-        `    <visual>${origin(v.matrix)}${geom}<material name="${material(v.color)}"/></visual>`,
-        `    <collision>${origin(v.matrix)}${geom}</collision>`);
+        `    <visual>${origin(v.matrix)}${geom}<material name="${material(v.color)}"/></visual>`);
+      if (!v.visualOnly) lines.push(`    <collision>${origin(v.matrix)}${geom}</collision>`);
     }
     lines.push('  </link>');
   }

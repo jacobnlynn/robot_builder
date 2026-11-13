@@ -26,8 +26,11 @@ initMenus();
 const start = initStart(viewer);
 // The module STEP files load when first needed; redraw (and refresh the legend) as each arrives.
 setCadListener(() => { viewer.redraw(); store.emit('view'); });
-// Open on the first example.
-store.load(EXAMPLES[0].data);
+// Open on the robot handed over by the other layout, if you just switched, or else the first example.
+const handed = store.takeHandoff();
+let switched = false;
+if (handed) try { store.load(handed); switched = true; } catch { /* not a robot after all: start fresh */ }
+if (!switched) store.load(EXAMPLES[0].data);
 viewer.fit();
 // Pro workspace: undo / redo, then the commands, view cube, labels, dock tabs and the timeline.
 const undo = initHistory(animator);
@@ -38,4 +41,6 @@ initStyles(viewer);
 // Guided tour: opens every time the site opens, and from Help > Tutorial. When it closes the first
 // time, the start screen offers the examples.
 let first = true;
-initTutorial(viewer, { onClose: () => { if (first) { first = false; start.open(); } } });
+initTutorial(viewer, { autoOpen: !switched, onClose: () => { if (first) { first = false; start.open(); } } });
+// Help > Open the classic layout takes the robot with it.
+document.querySelector('#menu-help a[href="index.html"]')?.addEventListener('click', () => store.handOff());

@@ -23,12 +23,15 @@ initMenus();
 const start = initStart(viewer);
 // The module STEP files load when first needed; redraw (and refresh the legend) as each arrives.
 setCadListener(() => { viewer.redraw(); store.emit('view'); });
-// Open on the first example.
-store.load(EXAMPLES[0].data);
+// Open on the robot handed over by the other layout, if you just switched, or else the first example.
+const handed = store.takeHandoff();
+let switched = false;
+if (handed) try { store.load(handed); switched = true; } catch { /* not a robot after all: start fresh */ }
+if (!switched) store.load(EXAMPLES[0].data);
 viewer.fit();
-// Themes in the Tutorial & theme menu: Retro (default), Normal (Datasheet), Risograph, Pixel, CGA. After the first robot loads, so it can redraw.
+// Themes in the Tutorial & theme menu: Retro (default), Normal (opens the pro layout), Risograph, Pixel, CGA. After the first robot loads, so it can redraw.
 initStyles(viewer);
 // Guided tour: opens every time the site opens, and from ? > Tutorial. When it closes the first
 // time, the start screen offers the examples.
 let first = true;
-initTutorial(viewer, { onClose: () => { if (first) { first = false; start.open(); } } });
+initTutorial(viewer, { autoOpen: !switched, onClose: () => { if (first) { first = false; start.open(); } } });

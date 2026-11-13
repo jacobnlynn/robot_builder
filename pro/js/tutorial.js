@@ -203,7 +203,7 @@ const STEPS = [
 
 // ---- The window ----
 
-export function initTutorial(viewer, { onClose } = {}) {
+export function initTutorial(viewer, { onClose, autoOpen = true } = {}) {
   const ctx = { viewer };
   const box = document.createElement('div');
   box.className = 'tour';
@@ -323,7 +323,7 @@ export function initTutorial(viewer, { onClose } = {}) {
 
   $('#btn-tour')?.addEventListener('click', () => show(0));
 
-  show(0); // every time the site opens
+  if (autoOpen) show(0); // every time the site opens (not when you switch layouts)
   return { show, close };
 }
 

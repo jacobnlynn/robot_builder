@@ -1,4 +1,4 @@
-// Start screen: a gallery of the example robots, in sections by category (legged robots, arms,
+// Start screen: a gallery of the example robots, in sections by category (legged robots, arms, wheeled robots,
 // simple mechanisms). It opens after the tutorial closes when the site first opens, and from the
 // Examples button. Picking a card replaces the robot; New in the top bar starts a blank one.
 import * as store from './robot.js';
