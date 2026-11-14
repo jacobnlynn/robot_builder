@@ -107,7 +107,7 @@ export function initChrome(viewer, { animator, history }) {
     let title = n.name || 'Unnamed', line;
     if (sel.kind === 'port') {
       title = n.children.length > 1 ? `${n.name} · output ${sel.index + 1}` : n.name;
-      line = { ball: 'Open ball joint', hinge: 'Open hinge' }[n.outputs?.[sel.index]?.end] ?? 'Open port: attach a part';
+      line = { ball: 'Open ball joint', hinge: 'Open hinge', sphere: 'End effector: sphere', wheel: 'End effector: wheel' }[n.outputs?.[sel.index]?.end] ?? 'Open port: attach a part';
     } else if (n.type === 'actuator') {
       line = `q ${deg(n.q)} · ${formatRatio(stackRatio(n.gearboxes))}`;
     } else {
@@ -141,7 +141,7 @@ export function initChrome(viewer, { animator, history }) {
     $('#vp-tags').innerHTML = tags.map((t) => `<span class="vp-tag">${esc(t)}</span>`).join('');
     const sel = state.selection, n = sel && node(sel.nodeId);
     $('#props-note').textContent = !n ? (state.view === 'sim' || state.view === 'anim' ? VIEW_NAME[state.view] : 'Nothing selected')
-      : sel.kind === 'port' ? 'Open port' : store.isFixed(n) ? 'Base' : n.type === 'actuator' ? 'Actuator' : 'Link';
+      : sel.kind === 'port' ? (store.effectorAt(n, sel.index) ? 'End effector' : 'Open port') : store.isFixed(n) ? 'Base' : n.type === 'actuator' ? 'Actuator' : 'Link';
   }
 
   // ---------------------------------------------------------------- Ground grid

@@ -183,6 +183,54 @@ export function addLink(port, { name, spec = 'dh', outputs }) {
   }, port);
 }
 
+// ---- End effectors ----
+
+// An end effector (a sphere or a wheel) ends the robot at a port. It is kept as the end of the link
+// output it sits on (end: 'sphere' with `sphere` = radius, or end: 'wheel' with wheel = { radius,
+// width }), which the 3D views, the CAD tab and the exports all draw. On a motor's output there is
+// no link output to end, so adding one there also adds a short hub link to carry it.
+export const EFFECTORS = {
+  sphere: { label: 'Sphere', radius: SPHERE_RADIUS },
+  wheel: { label: 'Wheel', radius: WHEEL.radius, width: WHEEL.width },
+};
+/** The end effector on link output i: { kind, radius, width }, or null. */
+export function effectorAt(n, i) {
+  const o = n?.type === 'link' ? n.outputs[i] : null;
+  if (o?.end === 'sphere') return { kind: 'sphere', radius: o.sphere ?? SPHERE_RADIUS };
+  if (o?.end === 'wheel') return { kind: 'wheel', radius: o.wheel?.radius ?? WHEEL.radius, width: o.wheel?.width ?? WHEEL.width };
+  return null;
+}
+/** Make link output o end in effector e ({ kind, radius, width }). */
+export function setEffector(o, e) {
+  setEnd(o, e.kind);
+  if (e.kind === 'sphere') o.sphere = e.radius;
+  else o.wheel = { radius: e.radius, width: e.width ?? WHEEL.width };
+}
+/** Put end effector e on a port; on a motor, through a short hub link. Selects it. */
+export function addEffector(port, e) {
+  const n = node(port.nodeId);
+  if (n.type === 'link') {
+    setEffector(n.outputs[port.index], e);
+    state.selection = { kind: 'port', nodeId: n.id, index: port.index };
+    emit('structure');
+    return;
+  }
+  // The hub: straight out along the motor's axis, far enough that the effector clears the flange.
+  const d = Math.round((e.kind === 'wheel' ? (e.width ?? WHEEL.width) / 2 : e.radius) + 25);
+  const dh = { a: 0, alpha: 0, d, theta: 0 };
+  const o = { ...defaultOutput(), dh, pose: { ...matrixToPose(dhToMatrix(dh)), ref: 'input' } };
+  setEffector(o, e);
+  const hub = addLink(port, { name: nextName('link'), spec: 'dh', outputs: [o] });
+  state.selection = { kind: 'port', nodeId: hub.id, index: 0 };
+  emit('selection');
+}
+/** Take the end effector off link output i (it becomes an open port again). */
+export function removeEffector(id, i) {
+  setEnd(node(id).outputs[i], 'output');
+  state.selection = { kind: 'port', nodeId: id, index: i };
+  emit('structure');
+}
+
 /** Ids of a part and everything attached downstream of it. */
 export function subtree(id) {
   const out = [];
@@ -260,7 +308,6 @@ export const isMotionView = (view = state.view) => view === 'sim' || view === 'a
 
 export function select(selection) {
   if (isMotionView() && selection) return;
-  if (selection?.kind === 'port' && isCapped(node(selection.nodeId), selection.index)) return;
   state.selection = selection;
   emit('selection');
 }

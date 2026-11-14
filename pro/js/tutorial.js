@@ -137,14 +137,15 @@ const STEPS = [
     target: '#inspector',
     text: `<p>Next, an Upper arm link on the shoulder's output. A link is a rigid part: its outputs are placed
       with D-H parameters or XYZ + angles, measured from its port, the world or any other part.</p>
-      <p>A link can have several outputs, and each one can be another port, a sphere end (a foot or a hand), or a
-      ball or hinge joint that another link turns freely on, for building linkages.</p>`,
+      <p>A link can have several outputs, and each one can be another port or a ball or hinge joint that another
+      link turns freely on, for building linkages. A port can also take an end effector: a sphere (a foot or a
+      hand) or a wheel.</p>`,
     setup: armStep(2, () => ({ kind: 'node', nodeId: last('link').id })),
   },
   {
     title: '3 · Assembly',
     target: '#pane-assembly',
-    text: `<p>Then an Elbow actuator and a Forearm link ending in a sphere. The Assembly list shows the
+    text: `<p>Then an Elbow actuator and a Forearm link ending in a sphere end effector. The Assembly list shows the
       whole robot as a tree: click any part to edit it, or an open port to attach something.</p>
       <p>Use the − / + buttons to fold branches, Collapse all to fold every limb to one line, the search box to find
       a part by name, or Tree view for a diagram.</p>`,

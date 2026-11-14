@@ -57,13 +57,14 @@ const CHIP = { base: ['B', '#7b8592'], link: ['L', '#8a97a8'] };
 
 const freshActuator = () => ({ name: '', motor: Object.keys(MOTORS)[0], gearboxes: ['planetary_5'], mount: 0 });
 const freshLink = () => ({ name: '', spec: 'dh', outputs: [store.defaultOutput()] });
+const freshEffector = () => ({ name: '', kind: 'sphere', radius: store.EFFECTORS.sphere.radius, width: store.EFFECTORS.wheel.width });
 
 const ui = {
   viewer: null,
   frames: {},
   solved: null, // solveLinks result: link transforms and home-pose frames
   addTab: 'actuator',
-  drafts: { actuator: freshActuator(), link: freshLink() },
+  drafts: { actuator: freshActuator(), link: freshLink(), effector: freshEffector() },
   draftPort: null, // 'nodeId:index' the drafts were set up for; a different port starts them fresh
   draftRobot: null,
   armedDelete: null,
@@ -81,24 +82,36 @@ function resetDraftsForPort() {
   if (sel?.kind !== 'port') return;
   const key = `${sel.nodeId}:${sel.index}`;
   if (key === ui.draftPort && state.robot === ui.draftRobot) return;
-  ui.drafts = { actuator: freshActuator(), link: freshLink() };
+  ui.drafts = { actuator: freshActuator(), link: freshLink(), effector: freshEffector() };
   ui.draftPort = key;
   ui.draftRobot = state.robot;
 }
 
 /** Which kind of part the selected port is set up to take: only a link fits a ball or hinge joint. */
 const addTabFor = (sel) => (sel?.kind === 'port' && store.isPassive(node(sel.nodeId), sel.index) ? 'link' : ui.addTab);
+/** How far out the hub carries an end effector added on a motor (as store.addEffector makes it). */
+const hubLength = (e) => Math.round((e.kind === 'wheel' ? e.width / 2 : e.radius) + 25);
 
 /** The part being set up at the selected port, for the viewer's live preview. */
 function draftPreview() {
   const sel = state.selection;
   if (sel?.kind !== 'port' || !ui.frames[sel.nodeId]) return null;
+  if (store.effectorAt(node(sel.nodeId), sel.index)) return null; // an end effector is already there
   const tab = addTabFor(sel);
   const d = ui.drafts[tab];
   const input = ui.frames[sel.nodeId].outputs[sel.index];
   if (tab === 'actuator') {
     const n = { type: 'actuator', motor: d.motor, gearboxes: d.gearboxes, mount: d.mount, q: 0, children: [null] };
     return { node: n, local: localKinematics(n), input };
+  }
+  if (tab === 'effector') {
+    // On a link output it sits right on the port; on a motor, at the end of a short hub.
+    const onMotor = node(sel.nodeId).type === 'actuator';
+    const dh = { a: 0, alpha: 0, d: onMotor ? hubLength(d) : 0, theta: 0 };
+    const o = { ...store.defaultOutput(), dh };
+    store.setEffector(o, d);
+    const n = { type: 'link', spec: 'dh', outputs: [o], children: [null] };
+    return { node: n, local: localKinematics(n, [dhToMatrix(dh)]), input };
   }
   const n = { type: 'link', spec: d.spec, outputs: d.outputs, children: d.outputs.map(() => null) };
   const home = linkInputHome(null);
@@ -310,7 +323,7 @@ function renderTree() {
         </div>
         ${shut ? `<ul><li><button type="button" class="tree-hidden ot-more" data-collapse="${id}">+${hiddenCount(id)} hidden</button></li></ul>`
           : `<ul>${n.children.map((c, i) => (c ? box(c) : store.isCapped(n, i) ? `<li><div class="ot-node">
-          <div class="ot-box ot-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(n, i) ? 'Wheel' : 'Sphere'}</span></div>
+          <button type="button" class="ot-box ot-port tree-end${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(n, i) ? 'Wheel' : 'Sphere'}</span></button>
         </div></li>` : `<li><div class="ot-node">
           <button type="button" class="ot-box ot-port tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
             <span class="port-dot" aria-hidden="true"></span><span class="tree-name">${n.children.length > 1 ? `Output ${i + 1}` : 'Open'}</span></button>
@@ -325,8 +338,8 @@ function renderTree() {
     ? `<li><button type="button" class="tree-port tree-joined${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
       <span class="loop-mark" aria-hidden="true">⟲</span><span class="tree-name">Joined to ${esc(portName(joined(id, i).other))}</span><span class="tree-meta">loop</span></button></li>`
     : store.isCapped(node(id), i)
-    ? `<li><div class="tree-port tree-end"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(node(id), i) ? 'Wheel' : 'Sphere end'}</span>
-      <span class="tree-meta">${store.isWheel(node(id), i) ? `⌀ ${len(2 * node(id).outputs[i].wheel.radius, state.units === 'in' ? 2 : 0)}` : len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}</span></div></li>`
+    ? `<li><button type="button" class="tree-port tree-end${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}"><span class="end-dot" aria-hidden="true"></span><span class="tree-name">${store.isWheel(node(id), i) ? 'Wheel' : 'Sphere'}</span>
+      <span class="tree-meta">${store.isWheel(node(id), i) ? `⌀ ${len(2 * node(id).outputs[i].wheel.radius, state.units === 'in' ? 2 : 0)}` : `r ${len(node(id).outputs[i].sphere, state.units === 'in' ? 2 : 0)}`}</span></button></li>`
     : `<li><button type="button" class="tree-port${portOn(id, i) ? ' is-selected' : ''}" data-port="${id}:${i}">
       <span class="port-dot" aria-hidden="true"></span><span class="tree-name">${PORT_NAME[node(id).outputs?.[i]?.end] ?? 'Open port'}</span><span class="tree-meta">attach</span></button></li>`);
   const row = (n, fold) => `<li><div class="tree-line">${fold ? caret(n, 'tree-caret') : ''}<button type="button" class="tree-row${nodeOn(n.id) ? ' is-selected' : ''}" data-node="${n.id}">
@@ -594,6 +607,7 @@ function loopSection(n, index) {
 function attachInspector(n, index) {
   const joinedTo = store.loopAt(n.id, index);
   if (joinedTo) return joinedInspector(n, index, joinedTo.other);
+  if (store.effectorAt(n, index)) return effectorInspector(n, index);
   const tab = addTabFor(state.selection);
   const d = ui.drafts[tab];
   const where = n.children.length > 1 ? `${n.name} · output ${index + 1}` : n.name;
@@ -603,20 +617,54 @@ function attachInspector(n, index) {
       <div class="eyebrow">Attach to</div>
       <h2 class="insp-title">${esc(where)}</h2>
       <div class="tabs" role="tablist" aria-label="Part type">
-        ${['actuator', 'link'].map((t) => `<button type="button" role="tab" class="tab" aria-selected="${t === tab}"
-          data-act="tab" data-tab="${t}"${passive && t === 'actuator' ? ' disabled title="Only a link can attach to a ball or hinge joint"' : ''}>${t === 'actuator' ? 'Actuator' : 'Link'}</button>`).join('')}
+        ${['actuator', 'link', 'effector'].map((t) => `<button type="button" role="tab" class="tab" aria-selected="${t === tab}"
+          data-act="tab" data-tab="${t}"${passive && t !== 'link' ? ' disabled title="Only a link can attach to a ball or hinge joint"' : ''}>${PART_TAB[t]}</button>`).join('')}
       </div>
       ${passive ? `<p class="hint">This output is a ${n.outputs[index].end === 'ball' ? 'ball' : 'hinge'} joint, so the next part is a link that turns freely on it.</p>` : ''}
     </div>
     <div class="insp-section insp-body">
-      <div class="field">
+      ${tab === 'effector' ? `${effectorFields(d)}
+      ${n.type === 'actuator' ? '<p class="hint">On a motor, a short hub link carries it out along the motor’s axis.</p>' : ''}` : `<div class="field">
         <label for="f-name">Name</label>
         <input id="f-name" type="text" data-field="name" value="${esc(d.name)}" placeholder="${store.nextName(tab)}" autocomplete="off">
       </div>
-      ${tab === 'actuator' ? actuatorFields(d) : linkFields(d, null)}
-      <button type="button" class="btn btn-primary btn-block" data-act="add">Add ${tab}</button>
+      ${tab === 'actuator' ? actuatorFields(d) : linkFields(d, null)}`}
+      <button type="button" class="btn btn-primary btn-block" data-act="add">Add ${PART_TAB[tab].toLowerCase()}</button>
     </div>
     ${passive ? loopSection(n, index) : ''}`;
+}
+
+const PART_TAB = { actuator: 'Actuator', link: 'Link', effector: 'End effector' };
+const EFFECTOR_SIZE = { radius: { label: 'Radius', min: 5, max: 250 }, width: { label: 'Width', min: 5, max: 150 } };
+
+/** End effector controls: its type, then a slider for each size it has. */
+function effectorFields(e) {
+  const sizes = e.kind === 'wheel' ? ['radius', 'width'] : ['radius'];
+  return `<div class="field">
+      <span class="label">Type</span>
+      <div class="tabs" role="group" aria-label="End effector type">
+        ${Object.entries(store.EFFECTORS).map(([k, t]) => `<button type="button" class="tab" aria-pressed="${e.kind === k}" data-act="eff-kind" data-kind="${k}">${t.label}</button>`).join('')}
+      </div>
+    </div>
+    ${sizes.map((k) => `<div class="field">
+      <label for="f-eff-${k}">${EFFECTOR_SIZE[k].label} <output class="eff-size" data-eff-out="${k}">${len(e[k], state.units === 'in' ? 2 : 0)}</output></label>
+      <div class="range-row"><input type="range" id="f-eff-${k}" min="${EFFECTOR_SIZE[k].min}" max="${EFFECTOR_SIZE[k].max}" step="1" value="${Math.round(e[k])}" data-eff="${k}"></div>
+    </div>`).join('')}
+    ${e.kind === 'wheel' ? '<p class="hint">Its axle is the port’s z axis, so it turns with the motor that turns this link.</p>' : ''}`;
+}
+
+/** A port that ends in an end effector: change it, or take it off. */
+function effectorInspector(n, index) {
+  const where = n.children.length > 1 ? `${n.name} · output ${index + 1}` : n.name;
+  return `
+    <div class="insp-section insp-head">
+      <div class="eyebrow">End effector</div>
+      <h2 class="insp-title">${esc(where)}</h2>
+    </div>
+    <div class="insp-section insp-body">${effectorFields(store.effectorAt(n, index))}</div>
+    <div class="insp-section insp-actions">
+      <button type="button" class="btn btn-danger" data-act="remove-effector">Remove end effector</button>
+    </div>`;
 }
 
 function partInspector(n) {
@@ -765,11 +813,10 @@ function linkFields(d, n) {
 }
 
 /**
- * Output: a connector to keep building from, a sphere or a wheel that ends the robot there, or a passive
+ * Output: a connector to keep building from (or an end effector on it: a sphere or wheel), or a passive
  * joint (ball or hinge) that the next link turns freely on. n is the live link, or null for a draft.
  */
 function endField(o, i, used, n) {
-  const sphere = o.end === 'sphere';
   const onIt = n?.children[i] && node(n.children[i]);
   const tab = (end, label, why) => `<button type="button" class="tab" aria-pressed="${(o.end ?? 'output') === end}" data-act="end" data-end="${end}" data-i="${i}"${why ? ` disabled title="${why}"` : ''}>${label}</button>`;
   const joint = onIt?.type === 'actuator' ? 'Only a link can sit on a joint: delete the actuator on this output first' : '';
@@ -777,16 +824,10 @@ function endField(o, i, used, n) {
       <span class="label">Output</span>
       <div class="tabs end-tabs" role="group" aria-label="Output ${i + 1} ends in">
         ${tab('output', 'Another output')}
-        ${tab('sphere', 'Sphere end', used ? 'Delete the part on this output first' : '')}
-        ${tab('wheel', 'Wheel', used ? 'Delete the part on this output first' : '')}
         ${tab('ball', 'Ball joint', joint)}
         ${tab('hinge', 'Hinge joint', joint)}
       </div>
-      ${sphere ? `<label class="end-size">Radius <input type="number" min="1" step="${unit().step}" value="${lenField(o.sphere)}" data-field="sphere" data-i="${i}">
-        <span class="hint">${state.units}</span></label>` : ''}
-      ${o.end === 'wheel' ? `<div class="end-size-row">${['radius', 'width'].map((k) => `<label class="end-size">${k === 'radius' ? 'Radius' : 'Width'} <input type="number" min="1" step="${unit().step}" value="${lenField(o.wheel?.[k])}" data-field="wheel" data-key="${k}" data-i="${i}">
-        <span class="hint">${state.units}</span></label>`).join('')}</div>
-        <p class="hint">A wheel, its axle along this output’s z axis: it turns with the motor that turns this link. Nothing can attach to it.</p>` : ''}
+      ${o.end === 'sphere' || o.end === 'wheel' ? `<p class="hint">This output ends in a ${o.end}, an end effector: select it in the Assembly list to change it or take it off.</p>` : ''}
       ${o.end === 'hinge' ? '<p class="hint">A hinge: the next link turns about this output’s z axis. Only a link can attach to it.</p>' : ''}
       ${o.end === 'ball' ? '<p class="hint">A ball joint: the next link turns freely, Rz(z) · Ry(y) · Rx(x). Only a link can attach to it.</p>' : ''}
       ${n && store.loopAt(n.id, i) ? `<p class="hint">Joined to ${esc(portName(store.loopAt(n.id, i).other))} in a closed loop.</p>`
@@ -1146,10 +1187,27 @@ function changed(live, kind) {
   if (kind === 'structure') renderInspector();
 }
 
+/** A size slider on the end effector panel (the selected one, or the one being added). */
+function effectorInput(t) {
+  const v = parseFloat(t.value), key = t.dataset.eff, sel = state.selection;
+  if (!Number.isFinite(v) || sel?.kind !== 'port') return;
+  const out = $(`[data-eff-out="${key}"]`, $('#inspector'));
+  if (out) out.textContent = len(v, state.units === 'in' ? 2 : 0);
+  const n = node(sel.nodeId), live = store.effectorAt(n, sel.index);
+  if (live) {
+    store.setEffector(n.outputs[sel.index], { ...live, [key]: v });
+    store.emit('params');
+  } else {
+    ui.drafts.effector[key] = v;
+    refreshViewer();
+  }
+}
+
 function bindInspector() {
   const el = $('#inspector');
 
   el.addEventListener('input', (e) => {
+    if (e.target.dataset.eff) return effectorInput(e.target);
     const t = e.target, field = t.dataset.field;
     const { data, live } = editing();
     if (field === 'name') {
@@ -1286,10 +1344,23 @@ function bindInspector() {
         const draft = structuredClone(data);
         data.name = '';
         const port = { nodeId: sel.nodeId, index: sel.index };
-        if (addTabFor(sel) === 'actuator') store.addActuator(port, draft);
+        const tab = addTabFor(sel);
+        if (tab === 'actuator') store.addActuator(port, draft);
+        else if (tab === 'effector') store.addEffector(port, draft);
         else store.addLink(port, draft);
         break;
       }
+      case 'eff-kind': {
+        // A new type starts at that type's usual size.
+        const sel = state.selection, n = node(sel.nodeId), live = store.effectorAt(n, sel.index);
+        const k = b.dataset.kind, size = { radius: store.EFFECTORS[k].radius, width: store.EFFECTORS.wheel.width };
+        if (live) { if (live.kind !== k) { store.setEffector(n.outputs[sel.index], { kind: k, ...size }); store.emit('structure'); } }
+        else { Object.assign(ui.drafts.effector, { kind: k, ...size }); refreshViewer(); renderInspector(); }
+        break;
+      }
+      case 'remove-effector':
+        store.removeEffector(state.selection.nodeId, state.selection.index);
+        break;
       case 'delete':
         requestDelete(data.id);
         break;
